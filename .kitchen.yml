@@ -11,5 +11,6 @@ platforms:
 suites:
   - name: default
     run_list:
+      - recipe[solodev_sensu::rabbitmq]
       - recipe[solodev_sensu::default]
     attributes:

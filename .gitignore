@@ -8,3 +8,4 @@
 tmp/
 .kitchen/
 .kitchen.local.yml
+.librarian/chef/config
