@@ -52,6 +52,7 @@ PATH
   remote: site-cookbooks/solodev_sensu
   specs:
     solodev_sensu (0.1.0)
+      sensu (>= 0.0.0)
 
 DEPENDENCIES
   sensu (>= 0)
