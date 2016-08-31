@@ -1,4 +1,6 @@
 .rake_test_cache
+.ssl/
+!.ssl/openssl.cnf
 
 ###
 # Ignore Chef key files and secrets
