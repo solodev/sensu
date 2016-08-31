@@ -220,10 +220,10 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:sensu_rabbitmq_stack) do
+  resources(:rabbitmq_stack) do
     type 'AWS::OpsWorks::Stack'
     properties do
-      name stack_name!
+      name join!(stack_name!, '-rabbitmq')
       service_role_arn attr!(:opsworks_service_iam_role, :arn)
       default_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       use_custom_cookbooks 'true'
@@ -242,25 +242,61 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:sensu_rabbitmq_instance) do
+  resources(:sensu_stack) do
+    type 'AWS::OpsWorks::Stack'
+    properties do
+      name join!(stack_name!, '-sensu')
+      service_role_arn attr!(:opsworks_service_iam_role, :arn)
+      default_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
+      use_custom_cookbooks 'true'
+      custom_cookbooks_source do
+        type 's3'
+        username ref!(:sensu_iam_access_key)
+        password attr!(:sensu_iam_access_key, :secret_access_key)
+        url join!('https://', ref!(:bucket_name), '.s3.amazonaws.com/', ref!(:artifact_path))
+      end
+      configuration_manager do
+        name 'Chef'
+        version '12'
+      end
+      default_subnet_id select!(0, ref!(:subnet_ids))
+      vpc_id ref!(:vpc_id)
+    end
+  end
+
+  resources(:rabbitmq_instance) do
     type 'AWS::OpsWorks::Instance'
     properties do
       instance_type ref!(:rabbitmq_instance_type)
-      layer_ids [ref!(:sensu_rabbitmq_layer)]
+      layer_ids [ref!(:rabbitmq_layer)]
       os 'CentOS Linux 7'
       root_device_type 'ebs'
       ssh_key_name ref!(:ssh_key_name)
-      stack_id ref!(:sensu_rabbitmq_stack)
+      stack_id ref!(:rabbitmq_stack)
       subnet_id select!(0, ref!(:subnet_ids))
     end
   end
 
-  resources(:sensu_rabbitmq_layer) do
+  resources(:sensu_instance) do
+    type 'AWS::OpsWorks::Instance'
+    properties do
+      instance_type ref!(:sensu_instance_type)
+      layer_ids [ref!(:sensu_layer)]
+      os 'Amazon Linux 2016.03'
+      root_device_type 'ebs'
+      ssh_key_name ref!(:ssh_key_name)
+      stack_id ref!(:sensu_stack)
+      subnet_id select!(0, ref!(:subnet_ids))
+    end
+    depends_on process_key!(:rabbitmq_instance)
+  end
+
+  resources(:rabbitmq_layer) do
     type 'AWS::OpsWorks::Layer'
     properties do
-      name 'sensu-rabbitmq'
-      shortname 'sensu-rabbitmq'
-      stack_id ref!(:sensu_rabbitmq_stack)
+      name 'rabbitmq'
+      shortname 'rabbitmq'
+      stack_id ref!(:rabbitmq_stack)
       type 'custom'
       enable_auto_healing 'false'
       auto_assign_elastic_ips 'true'
@@ -277,10 +313,32 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:sensu_rabbitmq_app) do
+   resources(:sensu_layer) do
+    type 'AWS::OpsWorks::Layer'
+    properties do
+      name 'sensu'
+      shortname 'sensu'
+      stack_id ref!(:sensu_stack)
+      type 'custom'
+      enable_auto_healing 'false'
+      auto_assign_elastic_ips 'true'
+      auto_assign_public_ips 'true'
+      custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
+      custom_security_group_ids [ref!(:sensu_security_group)]
+      custom_recipes do
+        setup [ "solodev_sensu::default" ]
+        configure []
+        deploy []
+        undeploy []
+        shutdown []
+      end
+    end
+  end
+
+  resources(:rabbitmq_app) do
     type 'AWS::OpsWorks::App'
     properties do
-      stack_id ref!(:sensu_rabbitmq_stack)
+      stack_id ref!(:rabbitmq_stack)
       name 'sensu-rabbitmq'
       type 'other'
     end
