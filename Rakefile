@@ -9,6 +9,8 @@ def run_command(command)
 end
 
 task :create_release do
+  run_command("rm -f .librarian/chef/config")
+  run_command("bundle exec librarian-chef install")
   run_command("zip -r #{ASSET_DIR}/release-#{Time.now.to_i}.zip cookbooks")
 end
 
