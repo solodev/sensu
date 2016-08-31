@@ -1,6 +1,11 @@
 SparkleFormation.new(:sensu).overrides do
   set!('AWSTemplateFormatVersion', '2010-09-09')
 
+  parameters(:stack_creator) do
+    type 'String'
+    default ENV['USER']
+  end
+
   parameters(:ssh_key_name) do
     type 'String'
     default 'solodev-sensu-shared'
@@ -19,24 +24,6 @@ SparkleFormation.new(:sensu).overrides do
   parameters(:redis_instance_type) do
     type 'String'
     default 'cache.t2.micro'
-  end
-
-  parameters(:redis_version) do
-    type 'CommaDelimitedList'
-#    default '2,8,21'
-  end
-
-  # redis_major_minor_version =  join!(
-  #   select!(0, ref!(:redis_version)),
-  #   select!(1, ref!(:redis_version)),
-  #   :options => {
-  #     :delimiter => '.'
-  #   }
-  # )
-
-  parameters(:stack_creator) do
-    type 'String'
-    default ENV['USER']
   end
 
   parameters(:vpc_id) do
@@ -163,11 +150,9 @@ SparkleFormation.new(:sensu).overrides do
     type 'AWS::ElastiCache::ParameterGroup'
     properties do
       description join!(
-        'redis-2.8', " parameters for ", stack_name!
+        'redis-2.8 parameters for ', stack_name!
       )
-      cache_parameter_group_family join!(
-        'redis2.8',''
-      )
+      cache_parameter_group_family 'redis2.8'
       # see http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html
       # for supported properties
       # Redis example:
@@ -182,7 +167,7 @@ SparkleFormation.new(:sensu).overrides do
     type 'AWS::ElastiCache::SubnetGroup'
     properties do
       description join!(
-        stack_name!, " redis ", major_minor_version
+        stack_name!, " redis 2.8.24"
       )
       subnet_ids ref!(:subnet_ids)
     end
@@ -191,16 +176,7 @@ SparkleFormation.new(:sensu).overrides do
   resources(:redis_replication_group) do
     type 'AWS::ElastiCache::ReplicationGroup'
     properties do
-      replication_group_description join!(
-        stack_name!,
-        ' Redis ', join!(
-          select!(0, ref!(:redis_version)),
-          select!(1, ref!(:redis_version)),
-          :options => {
-            :delimiter => '.'
-          }
-        )
-      )
+      replication_group_description join!(stack_name!, ' Redis 2.8.24')
       automatic_failover_enabled 'false'
       auto_minor_version_upgrade 'false'
       num_cache_clusters 1
@@ -210,17 +186,9 @@ SparkleFormation.new(:sensu).overrides do
       security_group_ids [ref!(:redis_security_group)]
       port '6379'
       engine 'redis'
-      engine_version join!(
-        select!(0, ref!(:redis_version)),
-        select!(1, ref!(:redis_version)),
-        select!(2, ref!(:redis_version)),
-        :options => {
-          :delimiter => '.'
-        }
-      )
+      engine_version '2.8.24'
     end
   end
-
 
   resources(:sensu_iam_user) do
     type 'AWS::IAM::User'
