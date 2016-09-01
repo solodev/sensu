@@ -14,12 +14,14 @@ $ bundle install
 $ export AWS_REGION=us-east-1
 $ export AWS_ACCESS_KEY_ID=...
 $ export AWS_SECRET_ACCESS_KEY=...
+$ export AWS_DEFAULT_REGION=us-east-1
+$ export NESTING_BUCKET=solodev-sensu-opsworks
 # install cookbooks
 $ bundle exec librarian-chef install
 # create asset
 $ bundle exec rake
-# upload asset to s3, $BUCKET_NAME should be specified when promped by BucketName parameter
-$ aws s3 cp tmp/assets/release-1472680773.zip s3://$BUCKET_NAME/release-1472680773.zip
+# upload asset to s3, $NESTING_BUCKET should be specified when promped by BucketName parameter
+$ aws s3 cp tmp/assets/release-1472680773.zip s3://$NESTING_BUCKET/release-1472680773.zip
 # build the infrastructure stack
 $ bundle exec sfn create my-sensu-infra --file sensu_infra
 # update the stack (e.g. after changing template)
