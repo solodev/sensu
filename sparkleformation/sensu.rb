@@ -136,6 +136,18 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  { :epmd => [ 4369 ], :node => [ 25671, 25672 ] }.each_pair do |name, port_range|
+    dynamic!(:ec2_security_group_ingress, "rabbitmq_#{name}".to_sym, :resource_name_suffix => :ingress_rule) do
+      properties do
+        group_id attr!(:rabbitmq_security_group, :group_id)
+        source_security_group_id attr!(:rabbitmq_security_group, :group_id)
+        ip_protocol 'tcp'
+        from_port port_range.first
+        to_port port_range.last
+      end
+    end
+  end
+
   resources(:sensu_iam_user) do
     type 'AWS::IAM::User'
     properties do
