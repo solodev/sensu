@@ -19,10 +19,10 @@ Configuration.new do
   end
   #   Name of bucket in object store to hold nested
   #   stack templates
-  # nesting_bucket 'BUCKET_NAME'
+  nesting_bucket 'solodev-sensu-opsworks'
   #   Prefix used on generated template path prior to storage
   #   in the object store
-  # nesting_prefix 'nested-templates'
+  nesting_prefix 'nested-templates'
   #   Remote provider credentials
   credentials do
     #  Remote provider name (:aws, :azure, :google, :open_stack, :rackspace)
