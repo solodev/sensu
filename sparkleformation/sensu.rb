@@ -7,12 +7,12 @@ SparkleFormation.new(:sensu).load(:base).overrides do
 
   parameters(:sensu_instance_type) do
     type 'String'
-    default 't2.micro'
+    default 'm3.medium'
   end
 
   parameters(:rabbitmq_instance_type) do
     type 'String'
-    default 't2.micro'
+    default 'm3.medium'
   end
 
   parameters(:bucket_name) do
@@ -27,7 +27,8 @@ SparkleFormation.new(:sensu).load(:base).overrides do
   %w(
     security_group_id
     primary_endpoint_address
-    primary_endpoint_port ).each do |param|
+    primary_endpoint_port
+  ).each do |param|
     parameters("redis_#{param}".to_sym) do
       type 'String'
     end
@@ -120,6 +121,21 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  dynamic!(:ec2_security_group, :rabbitmq, :resource_name_suffix => :security_group) do
+    properties do
+      group_description join!(stack_id!, " RabbitMQ shared security group")
+      vpc_id ref!(:vpc_id)
+      security_group_ingress array!(
+        -> {
+          cidr_ip '0.0.0.0/0'
+          from_port '5671'
+          to_port '5671'
+          ip_protocol 'tcp'
+        }
+      )
+    end
+  end
+
   resources(:sensu_iam_user) do
     type 'AWS::IAM::User'
     properties do
@@ -184,7 +200,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
         auto_assign_elastic_ips 'true'
         auto_assign_public_ips 'true'
         custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
-        custom_security_group_ids [ref!(:sensu_security_group)]
+        custom_security_group_ids [ref!(:sensu_security_group), ref!(:rabbitmq_security_group)]
         custom_recipes do
           setup [ "solodev_sensu::rabbitmq" ]
           configure []
@@ -209,7 +225,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       custom_security_group_ids [ref!(:sensu_security_group)]
       custom_recipes do
-        setup [ "solodev_sensu::default" ]
+        setup []
         configure []
         deploy []
         undeploy []
@@ -218,33 +234,43 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
-  %w( leader follower ).each do |type|
+  rabbit_count = 0
+  %w( leader follower1 follower2 ).each do |type|
+    rabbit_layer = "rabbitmq_#{type.gsub(/[0-9]/,"")}_layer".to_sym
     resources("rabbitmq_#{type}_instance".to_sym) do
       type 'AWS::OpsWorks::Instance'
       properties do
         instance_type ref!(:rabbitmq_instance_type)
-        layer_ids [ref!("rabbitmq_#{type}_layer".to_sym)]
+        layer_ids [ref!(rabbit_layer)]
         os 'CentOS Linux 7'
         root_device_type 'ebs'
         ssh_key_name ref!(:ssh_key_name)
         stack_id ref!(:sensu_stack)
-        subnet_id select!(0, ref!(:subnet_ids))
+        subnet_id select!(rabbit_count, ref!(:subnet_ids))
       end
+    end
+    rabbit_count += 1
+  end
+
+  [1, 2].each do |i|
+    resources("rabbitmq_follower#{i}_instance".to_sym) do
+      depends_on process_key!(:rabbitmq_leader_instance)
     end
   end
 
-  # resources(:sensu_instance) do
-  #   type 'AWS::OpsWorks::Instance'
-  #   properties do
-  #     instance_type ref!(:sensu_instance_type)
-  #     layer_ids [ref!(:sensu_layer)]
-  #     os 'Amazon Linux 2016.03'
-  #     root_device_type 'ebs'
-  #     ssh_key_name ref!(:ssh_key_name)
-  #     stack_id ref!(:sensu_stack)
-  #     subnet_id select!(0, ref!(:subnet_ids))
-  #   end
-  #   depends_on process_key!(:rabbitmq_instance)
-  # end
-
+  1.times do |i|
+    resources("sensu_instance_#{i}".to_sym) do
+      type 'AWS::OpsWorks::Instance'
+      properties do
+        instance_type ref!(:sensu_instance_type)
+        layer_ids [ref!(:sensu_layer)]
+        os 'Amazon Linux 2016.03'
+        root_device_type 'ebs'
+        ssh_key_name ref!(:ssh_key_name)
+        stack_id ref!(:sensu_stack)
+        subnet_id select!(i, ref!(:subnet_ids))
+      end
+      depends_on process_key!(:rabbitmq_leader_instance)
+    end
+  end
 end
