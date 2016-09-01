@@ -1,10 +1,4 @@
-SparkleFormation.new(:sensu).overrides do
-  set!('AWSTemplateFormatVersion', '2010-09-09')
-
-  parameters(:stack_creator) do
-    type 'String'
-    default ENV['USER']
-  end
+SparkleFormation.new(:sensu).load(:base).overrides do
 
   parameters(:ssh_key_name) do
     type 'String'
@@ -18,21 +12,7 @@ SparkleFormation.new(:sensu).overrides do
 
   parameters(:rabbitmq_instance_type) do
     type 'String'
-    default 'm1.small'
-  end
-
-  parameters(:redis_instance_type) do
-    type 'String'
-    default 'cache.t2.micro'
-  end
-
-  parameters(:vpc_id) do
-    type 'String'
-    description 'VPC to Join'
-  end
-
-  parameters(:subnet_ids) do
-    type 'CommaDelimitedList'
+    default 't2.micro'
   end
 
   parameters(:bucket_name) do
@@ -42,6 +22,15 @@ SparkleFormation.new(:sensu).overrides do
 
   parameters(:artifact_path) do
     type 'String'
+  end
+
+  %w(
+    security_group_id
+    primary_endpoint_address
+    primary_endpoint_port ).each do |param|
+    parameters("redis_#{param}".to_sym) do
+      type 'String'
+    end
   end
 
   resources(:sensu_iam_role) do
@@ -131,65 +120,6 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  dynamic!(:ec2_security_group, :redis, :resource_name_suffix => :security_group) do
-    properties do
-      group_description join!(stack_name!, " Redis shared security group")
-      vpc_id ref!(:vpc_id)
-      security_group_ingress array!(
-        -> {
-          source_security_group_id ref!(:sensu_security_group)
-          from_port '6379'
-          to_port '6379'
-          ip_protocol 'tcp'
-        }
-      )
-    end
-  end
-
-  resources(:redis_parameter_group) do
-    type 'AWS::ElastiCache::ParameterGroup'
-    properties do
-      description join!(
-        'redis-2.8 parameters for ', stack_name!
-      )
-      cache_parameter_group_family 'redis2.8'
-      # see http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html
-      # for supported properties
-      # Redis example:
-      properties do
-        _camel_keys_set(:auto_disable)
-        set!('slowlog-max-len', 256)
-      end
-    end
-  end
-
-  resources(:redis_subnet_group) do
-    type 'AWS::ElastiCache::SubnetGroup'
-    properties do
-      description join!(
-        stack_name!, " redis 2.8.24"
-      )
-      subnet_ids ref!(:subnet_ids)
-    end
-  end
-
-  resources(:redis_replication_group) do
-    type 'AWS::ElastiCache::ReplicationGroup'
-    properties do
-      replication_group_description join!(stack_name!, ' Redis 2.8.24')
-      automatic_failover_enabled 'false'
-      auto_minor_version_upgrade 'false'
-      num_cache_clusters 1
-      cache_node_type ref!(:redis_instance_type)
-      cache_parameter_group_name ref!(:redis_parameter_group)
-      cache_subnet_group_name ref!(:redis_subnet_group)
-      security_group_ids [ref!(:redis_security_group)]
-      port '6379'
-      engine 'redis'
-      engine_version '2.8.24'
-    end
-  end
-
   resources(:sensu_iam_user) do
     type 'AWS::IAM::User'
     properties do
@@ -220,32 +150,10 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:rabbitmq_stack) do
-    type 'AWS::OpsWorks::Stack'
-    properties do
-      name join!(stack_name!, '-rabbitmq')
-      service_role_arn attr!(:opsworks_service_iam_role, :arn)
-      default_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
-      use_custom_cookbooks 'true'
-      custom_cookbooks_source do
-        type 's3'
-        username ref!(:sensu_iam_access_key)
-        password attr!(:sensu_iam_access_key, :secret_access_key)
-        url join!('https://', ref!(:bucket_name), '.s3.amazonaws.com/', ref!(:artifact_path))
-      end
-      configuration_manager do
-        name 'Chef'
-        version '12'
-      end
-      default_subnet_id select!(0, ref!(:subnet_ids))
-      vpc_id ref!(:vpc_id)
-    end
-  end
-
   resources(:sensu_stack) do
     type 'AWS::OpsWorks::Stack'
     properties do
-      name join!(stack_name!, '-sensu')
+      name stack_name!
       service_role_arn attr!(:opsworks_service_iam_role, :arn)
       default_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       use_custom_cookbooks 'true'
@@ -264,56 +172,31 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:rabbitmq_instance) do
-    type 'AWS::OpsWorks::Instance'
-    properties do
-      instance_type ref!(:rabbitmq_instance_type)
-      layer_ids [ref!(:rabbitmq_layer)]
-      os 'CentOS Linux 7'
-      root_device_type 'ebs'
-      ssh_key_name ref!(:ssh_key_name)
-      stack_id ref!(:rabbitmq_stack)
-      subnet_id select!(0, ref!(:subnet_ids))
-    end
-  end
-
-  resources(:sensu_instance) do
-    type 'AWS::OpsWorks::Instance'
-    properties do
-      instance_type ref!(:sensu_instance_type)
-      layer_ids [ref!(:sensu_layer)]
-      os 'Amazon Linux 2016.03'
-      root_device_type 'ebs'
-      ssh_key_name ref!(:ssh_key_name)
-      stack_id ref!(:sensu_stack)
-      subnet_id select!(0, ref!(:subnet_ids))
-    end
-    depends_on process_key!(:rabbitmq_instance)
-  end
-
-  resources(:rabbitmq_layer) do
-    type 'AWS::OpsWorks::Layer'
-    properties do
-      name 'rabbitmq'
-      shortname 'rabbitmq'
-      stack_id ref!(:rabbitmq_stack)
-      type 'custom'
-      enable_auto_healing 'false'
-      auto_assign_elastic_ips 'true'
-      auto_assign_public_ips 'true'
-      custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
-      custom_security_group_ids [ref!(:sensu_security_group)]
-      custom_recipes do
-        setup [ "solodev_sensu::rabbitmq" ]
-        configure []
-        deploy []
-        undeploy []
-        shutdown []
+  %w( leader follower ).each do |type|
+    resources("rabbitmq_#{type}_layer".to_sym) do
+      type 'AWS::OpsWorks::Layer'
+      properties do
+        name "rabbitmq-#{type}"
+        shortname "rabbitmq-#{type}"
+        stack_id ref!(:sensu_stack)
+        type 'custom'
+        enable_auto_healing 'false'
+        auto_assign_elastic_ips 'true'
+        auto_assign_public_ips 'true'
+        custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
+        custom_security_group_ids [ref!(:sensu_security_group)]
+        custom_recipes do
+          setup [ "solodev_sensu::rabbitmq" ]
+          configure []
+          deploy []
+          undeploy []
+          shutdown []
+        end
       end
     end
   end
 
-   resources(:sensu_layer) do
+  resources(:sensu_layer) do
     type 'AWS::OpsWorks::Layer'
     properties do
       name 'sensu'
@@ -335,27 +218,33 @@ SparkleFormation.new(:sensu).overrides do
     end
   end
 
-  resources(:rabbitmq_app) do
-    type 'AWS::OpsWorks::App'
-    properties do
-      stack_id ref!(:rabbitmq_stack)
-      name 'sensu-rabbitmq'
-      type 'other'
+  %w( leader follower ).each do |type|
+    resources("rabbitmq_#{type}_instance".to_sym) do
+      type 'AWS::OpsWorks::Instance'
+      properties do
+        instance_type ref!(:rabbitmq_instance_type)
+        layer_ids [ref!("rabbitmq_#{type}_layer".to_sym)]
+        os 'CentOS Linux 7'
+        root_device_type 'ebs'
+        ssh_key_name ref!(:ssh_key_name)
+        stack_id ref!(:sensu_stack)
+        subnet_id select!(0, ref!(:subnet_ids))
+      end
     end
   end
 
-  outputs do
-    redis_security_group_id do
-      value attr!(:redis_security_group, 'GroupId')
-    end
-
-    redis_primary_endpoint_address do
-      value attr!(:redis_replication_group, 'PrimaryEndPoint.Address')
-    end
-
-    redis_primary_endpoint_port do
-      value attr!(:redis_replication_group, 'PrimaryEndPoint.Port')
-    end
-  end
+  # resources(:sensu_instance) do
+  #   type 'AWS::OpsWorks::Instance'
+  #   properties do
+  #     instance_type ref!(:sensu_instance_type)
+  #     layer_ids [ref!(:sensu_layer)]
+  #     os 'Amazon Linux 2016.03'
+  #     root_device_type 'ebs'
+  #     ssh_key_name ref!(:ssh_key_name)
+  #     stack_id ref!(:sensu_stack)
+  #     subnet_id select!(0, ref!(:subnet_ids))
+  #   end
+  #   depends_on process_key!(:rabbitmq_instance)
+  # end
 
 end
