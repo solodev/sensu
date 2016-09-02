@@ -15,6 +15,11 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     default 'm3.medium'
   end
 
+  parameters(:influxdb_instance_type) do
+    type 'String'
+    default 'm3.medium'
+  end
+
   parameters(:bucket_name) do
     type 'String'
     default 'solodev-sensu-opsworks'
@@ -183,6 +188,31 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  dynamic!(:ec2_security_group, :influxdb, :resource_name_suffix => :security_group) do
+    properties do
+      group_description join!(stack_id!, " InfluxDB security group")
+      vpc_id ref!(:vpc_id)
+      security_group_ingress array!(
+        -> {
+          cidr_ip '0.0.0.0/0'
+          from_port '8083'
+          to_port '8083'
+          ip_protocol 'tcp'
+        }
+      )
+    end
+  end
+
+  dynamic!(:ec2_security_group_ingress, :influxdb_sensu, :resource_name_suffix => :ingress_rule) do
+    properties do
+      group_id attr!(:influxdb_security_group, :group_id)
+      source_security_group_id attr!(:sensu_security_group, :group_id)
+      ip_protocol 'tcp'
+      from_port 8080
+      to_port 8090
+    end
+  end
+
   resources(:sensu_iam_user) do
     type 'AWS::IAM::User'
     properties do
@@ -317,6 +347,28 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  resources(:influxdb_layer) do
+    type 'AWS::OpsWorks::Layer'
+    properties do
+      name 'influxdb'
+      shortname 'influxdb'
+      stack_id ref!(:sensu_stack)
+      type 'custom'
+      enable_auto_healing 'false'
+      auto_assign_elastic_ips 'true'
+      auto_assign_public_ips 'true'
+      custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
+      custom_security_group_ids [ref!(:influxdb_security_group)]
+      custom_recipes do
+        setup [ "solodev_sensu::client", "solodev_sensu::influxdb" ]
+        configure [ "solodev_sensu::client" ]
+        deploy []
+        undeploy []
+        shutdown []
+      end
+    end
+  end
+
   rabbit_count = 0
   %w( leader follower1 follower2 ).each do |type|
     rabbit_layer = "rabbitmq_#{type.gsub(/[0-9]/,"")}_layer".to_sym
@@ -355,5 +407,19 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       end
       depends_on process_key!(:rabbitmq_leader_instance)
     end
+  end
+
+  resources(:influxdb_instance) do
+    type 'AWS::OpsWorks::Instance'
+    properties do
+      instance_type ref!(:influxdb_instance_type)
+      layer_ids [ref!(:influxdb_layer)]
+      os 'CentOS Linux 7'
+      root_device_type 'ebs'
+      ssh_key_name ref!(:ssh_key_name)
+      stack_id ref!(:sensu_stack)
+      subnet_id select!(1, ref!(:subnet_ids))
+    end
+    depends_on process_key!(:rabbitmq_leader_instance)
   end
 end
