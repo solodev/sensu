@@ -16,6 +16,7 @@ SITE
       yum (~> 3.0)
       yum-epel (>= 0.0.0)
       yum-erlang_solutions (>= 0.0.0)
+    hostsfile (2.4.5)
     mingw (1.2.4)
       compat_resource (>= 0.0.0)
       seven_zip (>= 0.0.0)
@@ -52,9 +53,9 @@ PATH
   remote: site-cookbooks/solodev_sensu
   specs:
     solodev_sensu (0.1.0)
+      hostsfile (>= 0.0.0)
       sensu (>= 0.0.0)
 
 DEPENDENCIES
-  sensu (>= 0)
   solodev_sensu (>= 0)
 

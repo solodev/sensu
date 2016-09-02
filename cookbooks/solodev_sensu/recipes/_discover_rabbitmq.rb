@@ -4,21 +4,32 @@
 #
 # Copyright (c) 2016 Solodev, All Rights Reserved.
 
-# TODO: Stack custom JSON override and conditional HERE.
+leader_layer = Chef::DataBagItem.load("aws_opsworks_layer", "rabbitmq-leader").to_hash
+leader_layer_id = leader_layer["layer_id"]
 
-rabbitmq_nodes = search(:node, "recipes:solodev_sensu\\:\\:rabbitmq")
+follower_layer = Chef::DataBagItem.load("aws_opsworks_layer", "rabbitmq-follower").to_hash
+follower_layer_id = follower_layer["layer_id"]
 
-expanded_recipes = node.run_list.expand(node.chef_environment).recipes
+opsworks_instances = search("aws_opsworks_instance")
 
-if expanded_recipes.include?("solodev_sensu::rabbitmq")
-  rabbitmq_nodes << node
-  rabbitmq_nodes.uniq! { |n| n.name }
-end
+rabbitmq_nodes = opsworks_instances.select { |instance|
+  instance["layer_ids"].include?(leader_layer_id) ||
+  instance["layer_ids"].include?(follower_layer_id)
+}.map { |instance| instance.to_hash }
 
-rabbitmq_nodes.sort!
+rabbitmq_leader_nodes = opsworks_instances.select { |instance|
+  instance["layer_ids"].include?(leader_layer_id)
+}.map { |instance| instance.to_hash }
+
+leader_node = rabbitmq_leader_nodes.first
 
 node.run_state["solodev_sensu"] ||= Mash.new
 node.run_state["solodev_sensu"]["rabbitmq_nodes"] = rabbitmq_nodes
+node.run_state["solodev_sensu"]["rabbitmq_cluster_nodes"] = [
+  {
+    "name" => "rabbit@#{leader_node["hostname"]}",
+    "type" => "disc"
+  }
+]
 
-# TODO: Use appropriate address (public?) for RabbitMQ
-node.override["sensu"]["rabbitmq"]["host"] = rabbitmq_nodes.first["hostname"]
+node.override["sensu"]["rabbitmq"]["host"] = leader_node["public_dns"]

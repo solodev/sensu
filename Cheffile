@@ -3,6 +3,4 @@
 
 site "https://supermarket.chef.io/api/v1"
 
-cookbook "sensu"
-
 cookbook "solodev_sensu", :path => "site-cookbooks/solodev_sensu"

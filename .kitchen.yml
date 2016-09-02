@@ -6,11 +6,11 @@ provisioner:
   name: chef_zero
 
 platforms:
-  - name: centos-6.7
+  - name: centos-7.2
 
 suites:
   - name: default
     run_list:
       - recipe[solodev_sensu::rabbitmq]
+      - recipe[solodev_sensu::rabbitmq_leader]
       - recipe[solodev_sensu::client]
-    attributes:

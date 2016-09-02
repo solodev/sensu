@@ -11,7 +11,10 @@ end
 task :create_release do
   run_command("rm -f .librarian/chef/config")
   run_command("bundle exec librarian-chef install")
-  run_command("zip -r #{ASSET_DIR}/release-#{Time.now.to_i}.zip cookbooks")
+  artifact = "release-#{Time.now.to_i}.zip"
+  release_path = "#{ASSET_DIR}/#{artifact}"
+  run_command("zip -r #{release_path} cookbooks")
+  run_command("aws s3 cp #{release_path} s3://$NESTING_BUCKET/#{artifact}")
 end
 
 task :push_latest_release do

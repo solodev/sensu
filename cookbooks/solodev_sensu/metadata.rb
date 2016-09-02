@@ -7,6 +7,7 @@ long_description 'Installs/Configures solodev_sensu'
 version '0.1.0'
 
 depends "sensu"
+depends "hostsfile"
 
 # If you upload to Supermarket you should set this so your cookbook
 # gets a `View Issues` link
