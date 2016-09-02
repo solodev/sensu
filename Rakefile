@@ -1,6 +1,8 @@
 require "fileutils"
+require "miasma"
 
 ASSET_DIR = ENV.fetch("ASSET_DIR", "tmp/assets")
+S3_BUCKET = ENV.fetch("S3_BUCKET", "solodev-sensu-opsworks")
 
 FileUtils.mkdir_p(ASSET_DIR) unless File.exists?(ASSET_DIR)
 
@@ -18,7 +20,41 @@ task :create_release do
 end
 
 task :push_latest_release do
-  # no-op
+  region = ENV.fetch("AWS_REGION", "us-east-1")
+  bucket_region = ENV.fetch("AWS_BUCKET_REGION", region)
+
+  remote_creds = {
+    :provider => :aws,
+    :credentials => {
+      :aws_access_key_id => ENV["AWS_ACCESS_KEY_ID"],
+      :aws_secret_access_key => ENV["AWS_SECRET_ACCESS_KEY"],
+      :aws_region => region,
+      :aws_bucket_region => bucket_region,
+      :aws_sts_role_arn => ENV["AWS_STS_ROLE_ARN"],
+      :aws_sts_external_id => ENV["AWS_STS_EXTERNAL_ID"]
+    }
+  }.delete_if { |key, value| value.nil? }
+
+  begin
+    remote = Miasma.api(
+      :provider => remote_creds[:provider].to_s.downcase,
+      :type => "storage",
+      :credentials => remote_creds[:credentials]
+      )
+
+    directory = remote.buckets.get(S3_BUCKET)
+
+    release_file = Dir.glob("#{ASSET_DIR}/release-*.zip").max_by do |file|
+      File.mtime(file)
+    end
+
+    remote_file = Miasma::Models::Storage::File.new(directory)
+    remote_file.name = release_file
+    remote_file.body = File.open(release_file, "r")
+    remote_file.save
+
+    puts "Successfully pushed latest release - #{release_file}"
+  end
 end
 
 task :create_ssl do
