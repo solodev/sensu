@@ -32,4 +32,8 @@ node.run_state["solodev_sensu"]["rabbitmq_cluster_nodes"] = [
   }
 ]
 
+node.override["sensu"]["rabbitmq"]["hosts"] = rabbitmq_nodes.map do |rabbitmq_node|
+  rabbitmq_node["public_dns"]
+end
+
 node.override["sensu"]["rabbitmq"]["host"] = leader_node["public_dns"]
