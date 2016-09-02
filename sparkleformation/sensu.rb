@@ -202,7 +202,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
         url join!('https://', ref!(:bucket_name), '.s3.amazonaws.com/', ref!(:artifact_path))
       end
       custom_json do
-        redis do
+        elasticache do
           host ref!(:redis_primary_endpoint_address)
           port ref!(:redis_primary_endpoint_port)
         end
