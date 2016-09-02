@@ -106,6 +106,21 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  dynamic!(:ec2_security_group, :sensu_elb, :resource_name_suffix => :security_group) do
+    properties do
+      group_description join!(stack_id!, " Sensu ELB security group")
+      vpc_id ref!(:vpc_id)
+      security_group_ingress array!(
+        -> {
+          cidr_ip '0.0.0.0/0'
+          from_port '80'
+          to_port '80'
+          ip_protocol 'tcp'
+        }
+      )
+    end
+  end
+
   dynamic!(:ec2_security_group, :sensu, :resource_name_suffix => :security_group) do
     properties do
       group_description join!(stack_id!, " Sensu shared security group")
@@ -118,6 +133,16 @@ SparkleFormation.new(:sensu).load(:base).overrides do
           ip_protocol 'tcp'
         }
       )
+    end
+  end
+
+  dynamic!(:ec2_security_group_ingress, :sensu_dashboard, :resource_name_suffix => :ingress_rule) do
+    properties do
+      group_id attr!(:sensu_security_group, :group_id)
+      source_security_group_id attr!(:sensu_elb_security_group, :group_id)
+      ip_protocol 'tcp'
+      from_port 3000
+      to_port 3000
     end
   end
 
@@ -262,6 +287,36 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  resources(:sensu_layer_elb) do
+    type 'AWS::ElasticLoadBalancing::LoadBalancer'
+    properties do
+      security_groups [ref!(:sensu_elb_security_group)]
+      subnets ref!(:subnet_ids)
+      health_check do
+        healthy_threshold 5
+        interval 10
+        target 'http:3000/'
+        unhealthy_threshold 3
+        timeout 5
+      end
+      listeners array!(
+        -> {
+          instance_port '3000'
+          load_balancer_port '80'
+          protocol 'http'
+        }
+      )
+    end
+  end
+
+  resources(:sensu_layer_elb_attachment) do
+    type 'AWS::OpsWorks::ElasticLoadBalancerAttachment'
+    properties do
+      elastic_load_balancer_name ref!(:sensu_layer_elb)
+      layer_id ref!(:sensu_layer)
+    end
+  end
+
   rabbit_count = 0
   %w( leader follower1 follower2 ).each do |type|
     rabbit_layer = "rabbitmq_#{type.gsub(/[0-9]/,"")}_layer".to_sym
@@ -286,7 +341,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
-  1.times do |i|
+  2.times do |i|
     resources("sensu_instance_#{i}".to_sym) do
       type 'AWS::OpsWorks::Instance'
       properties do
