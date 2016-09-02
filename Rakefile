@@ -59,7 +59,7 @@ task :create_ssl do
   ssl_directory = ".ssl"
   cert_name = "sensu-rabbitmq"
 
-  %w[ca client server certs].each do |sub_directory|
+  %w[ca client server certs console].each do |sub_directory|
     FileUtils.mkdir_p(File.join(ssl_directory, sub_directory))
   end
 
@@ -75,6 +75,8 @@ task :create_ssl do
     :server_cert => File.join("server", "#{cert_name}-cert.pem"),
     :server_key => File.join("server", "#{cert_name}-key.pem"),
     :server_csr => File.join("server", "#{cert_name}-csr.pem"),
+    :console_private_key => File.join("console", "private.pem"),
+    :console_public_key => File.join("console", "public.pem"),
   }
 
   Dir.chdir(ssl_directory) do
@@ -87,22 +89,28 @@ task :create_ssl do
     end
 
     # generate a new self-signed CA key & certificate
-    unless File.exists?(ssl_files[:ca_key]) && File.exists?(ssl_files[:ca_cert])
+    unless [:ca_key, :ca_cert].all? { |file| File.exists?(ssl_files[file]) }
       system("openssl req -x509 -config openssl.cnf -days 1825 -subj /CN=SensuCA/ -nodes -newkey rsa:2048 -keyout #{ssl_files[:ca_key]} -out #{ssl_files[:ca_cert]}")
     end
 
     # generate server key & certificate
-    unless File.exists?(ssl_files[:server_key]) && File.exists?(ssl_files[:server_cert])
+    unless [:server_key, :server_cert].all? { |file| File.exists?(ssl_files[file]) }
       system("openssl genrsa -out #{ssl_files[:server_key]} 2048")
       system("openssl req -new -key #{ssl_files[:server_key]} -out #{ssl_files[:server_csr]} -subj /CN=sensu/O=server/ -nodes")
       system("openssl ca -config openssl.cnf -in #{ssl_files[:server_csr]} -out #{ssl_files[:server_cert]} -notext -batch -extensions server_ca_extensions")
     end
 
     # generate client key & certificate
-    unless File.exists?(ssl_files[:client_key]) && File.exists?(ssl_files[:client_cert])
+    unless [:client_key, :client_cert].all? { |file| File.exists?(ssl_files[file]) }
       system("openssl genrsa -out #{ssl_files[:client_key]} 2048")
       system("openssl req -new -key #{ssl_files[:client_key]} -out #{ssl_files[:client_csr]} -subj /CN=sensu/O=client/ -nodes")
       system("openssl ca -config openssl.cnf -in #{ssl_files[:client_csr]} -out #{ssl_files[:client_cert]} -notext -batch -extensions client_ca_extensions")
+    end
+
+    # generate private & public keys for sensu enterprise console
+    unless [:console_private_key, :console_public_key].all? { |file| File.exists?(ssl_files[file]) }
+      system("openssl genrsa -out #{ssl_files[:console_private_key]} 2048")
+      system("openssl rsa -in #{ssl_files[:console_private_key]} -pubout > #{ssl_files[:console_public_key]}")
     end
   end
 end
