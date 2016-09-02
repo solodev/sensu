@@ -107,4 +107,25 @@ task :create_ssl do
   end
 end
 
+task :create_secrets do
+  secrets_directory = ".secrets"
+  FileUtils.mkdir_p(secrets_directory)
+  secrets_file = File.join(secrets_directory, "secrets.json")
+  secrets = {
+    :sensu => {
+      :enterprise => {
+        :repository => {
+          :credentials => {
+            :user => ENV["SE_USER"],
+            :password => ENV["SE_PASS"]
+          }
+        }
+      }
+    }
+  }
+  File.open(secrets_file, "w") do |file|
+    file.write(JSON.pretty_generate(secrets))
+  end
+end
+
 task :default => [:create_release, :push_latest_release]

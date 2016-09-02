@@ -201,6 +201,12 @@ SparkleFormation.new(:sensu).load(:base).overrides do
         password attr!(:sensu_iam_access_key, :secret_access_key)
         url join!('https://', ref!(:bucket_name), '.s3.amazonaws.com/', ref!(:artifact_path))
       end
+      custom_json do
+        redis do
+          host ref!(:redis_primary_endpoint_address)
+          port ref!(:redis_primary_endpoint_port)
+        end
+      end
       configuration_manager do
         name 'Chef'
         version '12'
@@ -247,8 +253,8 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       custom_security_group_ids [ref!(:sensu_security_group)]
       custom_recipes do
-        setup [ "solodev_sensu::client" ]
-        configure [ "solodev_sensu::client" ]
+        setup [ "solodev_sensu::client", "solodev_sensu::enterprise" ]
+        configure [ "solodev_sensu::client", "solodev_sensu::enterprise" ]
         deploy []
         undeploy []
         shutdown []
