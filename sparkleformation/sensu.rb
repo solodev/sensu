@@ -360,7 +360,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       custom_security_group_ids [ref!(:influxdb_security_group)]
       custom_recipes do
-        setup [ "solodev_sensu::client", "solodev_sensu::influxdb" ]
+        setup [ "solodev_sensu::influxdb" ]
         configure [ "solodev_sensu::client" ]
         deploy []
         undeploy []
