@@ -13,10 +13,8 @@ end
 task :create_release do
   run_command("rm -f .librarian/chef/config")
   run_command("bundle exec librarian-chef install")
-  artifact = "release-#{Time.now.to_i}.zip"
-  release_path = "#{ASSET_DIR}/#{artifact}"
+  release_path = "#{ASSET_DIR}/release-#{Time.now.to_i}.zip"
   run_command("zip -r #{release_path} cookbooks")
-  run_command("aws s3 cp #{release_path} s3://$NESTING_BUCKET/#{artifact}")
 end
 
 task :push_latest_release do
@@ -109,6 +107,4 @@ task :create_ssl do
   end
 end
 
-task :publish => [:create_release, :push_latest_release]
-
-task :default => :create_release
+task :default => [:create_release, :push_latest_release]
