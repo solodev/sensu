@@ -8,14 +8,6 @@ SparkleFormation.new(:elasticache).load(:base).overrides do
     properties do
       group_description join!(stack_name!, " Redis shared security group")
       vpc_id ref!(:vpc_id)
-      security_group_ingress array!(
-        -> {
-          cidr_ip '0.0.0.0/0'
-          from_port '6379'
-          to_port '6379'
-          ip_protocol 'tcp'
-        }
-      )
     end
   end
 

@@ -121,6 +121,16 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
+  dynamic!(:ec2_security_group_ingress, :redis_sensu, :resource_name_suffix => :ingress_rule) do
+    properties do
+      group_id ref!(:redis_security_group_id)
+      source_security_group_id attr!(:sensu_security_group, :group_id)
+      ip_protocol 'tcp'
+      from_port 6379
+      to_port 6379
+    end
+  end
+
   dynamic!(:ec2_security_group, :rabbitmq, :resource_name_suffix => :security_group) do
     properties do
       group_description join!(stack_id!, " RabbitMQ shared security group")

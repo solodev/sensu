@@ -47,7 +47,7 @@ task :push_latest_release do
     end
 
     remote_file = Miasma::Models::Storage::File.new(directory)
-    remote_file.name = release_file
+    remote_file.name = release_file.split("/").last
     remote_file.body = File.open(release_file, "r")
     remote_file.save
 
