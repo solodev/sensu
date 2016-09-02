@@ -8,6 +8,7 @@ SITE
       mingw (>= 1.1)
       seven_zip (>= 0.0.0)
     chef_handler (1.4.0)
+    citadel (1.1.0)
     compat_resource (12.14.0)
     dpkg_autostart (0.2.0)
     erlang (3.0.0)
@@ -53,6 +54,7 @@ PATH
   remote: site-cookbooks/solodev_sensu
   specs:
     solodev_sensu (0.1.0)
+      citadel (>= 0.0.0)
       hostsfile (>= 0.0.0)
       sensu (>= 0.0.0)
 
