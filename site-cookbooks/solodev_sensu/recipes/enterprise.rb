@@ -28,6 +28,21 @@ package "sensu-enterprise-dashboard" do
   version node["sensu"]["enterprise-dashboard"]["version"]
 end
 
+node.override["sensu"]["enterprise-dashboard"]["dashboard"]["auth"] = Mash.new
+
+[:public, :private].each do |type|
+  path = File.join(node["sensu"]["directory"], "ssl", "dashboard-#{type}.pem")
+
+  file path do
+    content citadel["sensu/dashboard/#{type}.pem"]
+    owner node["sensu"]["user"]
+    group node["sensu"]["group"]
+    mode "0600"
+  end
+
+  node.override["sensu"]["enterprise-dashboard"]["dashboard"]["auth"]["#{type}key"] = path
+end
+
 sensu_dashboard_config node.name
 
 include_recipe "sensu::enterprise_dashboard_service"
