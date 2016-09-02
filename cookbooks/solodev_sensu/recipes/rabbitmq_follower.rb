@@ -13,7 +13,7 @@ end
 
 execute "stop_rabbitmq_app" do
   command "/sbin/rabbitmqctl stop_app"
-  not_if "/sbin/rabbitmqctl cluster_status | grep '{cluster_name,<<\"sensu\">>}'"
+  not_if "/sbin/rabbitmqctl cluster_status | grep cluster_name | grep sensu"
   action :run
   notifies :run, "execute[reset_rabbitmq_app]", :immediately
 end
