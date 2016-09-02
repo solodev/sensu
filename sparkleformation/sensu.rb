@@ -256,7 +256,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
         custom_security_group_ids [ref!(:sensu_security_group), ref!(:rabbitmq_security_group)]
         custom_recipes do
           setup [ "solodev_sensu::rabbitmq" ]
-          configure [ "solodev_sensu::rabbitmq_#{type}" ]
+          configure [ "solodev_sensu::rabbitmq_#{type}", "solodev_sensu::client" ]
           deploy []
           undeploy []
           shutdown []
