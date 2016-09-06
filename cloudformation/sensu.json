@@ -13,7 +13,7 @@
     },
     "RedisInstanceType": {
       "Type": "String",
-      "Default": "cache.t2.micro"
+      "Default": "cache.m3.medium"
     },
     "SshKeyName": {
       "Type": "String",
@@ -112,9 +112,9 @@
             ]
           ]
         },
-        "AutomaticFailoverEnabled": "false",
+        "AutomaticFailoverEnabled": "true",
         "AutoMinorVersionUpgrade": "false",
-        "NumCacheClusters": 1,
+        "NumCacheClusters": 2,
         "CacheNodeType": {
           "Ref": "RedisInstanceType"
         },
@@ -978,6 +978,22 @@
         "Fn::GetAtt": [
           "RedisReplicationGroup",
           "PrimaryEndPoint.Port"
+        ]
+      }
+    },
+    "SensuDashboardUrl": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "SensuLayerElb",
+                "DNSName"
+              ]
+            }
+          ]
         ]
       }
     }
