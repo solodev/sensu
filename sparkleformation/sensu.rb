@@ -86,9 +86,9 @@ SparkleFormation.new(:sensu) do
     type 'AWS::ElastiCache::ReplicationGroup'
     properties do
       replication_group_description join!(stack_name!, ' Redis 2.8.24')
-      automatic_failover_enabled 'false'
+      automatic_failover_enabled 'true'
       auto_minor_version_upgrade 'false'
-      num_cache_clusters 1
+      num_cache_clusters 2
       cache_node_type ref!(:redis_instance_type)
       cache_parameter_group_name ref!(:redis_parameter_group)
       cache_subnet_group_name ref!(:redis_subnet_group)
