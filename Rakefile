@@ -129,6 +129,10 @@ task :create_secrets do
           }
         }
       }
+    },
+    :influxdb => {
+      :username => ENV["INFLUXDB_USER"],
+      :password => ENV["INFLUXDB_PASS"]
     }
   }
   File.open(secrets_file, "w") do |file|
