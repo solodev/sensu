@@ -1,6 +1,4 @@
 .rake_test_cache
-.ssl/
-!.ssl/openssl.cnf
 .envrc
 
 ###
@@ -12,4 +10,6 @@ tmp/
 .kitchen/
 .kitchen.local.yml
 .librarian/chef/config
-.secrets/
+
+# allow these files
+!tmp/assets/sensu/ssl/openssl.cnf
