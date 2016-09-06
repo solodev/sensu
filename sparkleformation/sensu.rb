@@ -1,5 +1,24 @@
-SparkleFormation.new(:sensu).load(:base).overrides do
+SparkleFormation.new(:sensu) do
+  set!('AWSTemplateFormatVersion', '2010-09-09')
+ 
+  parameters(:creator) do
+    type 'String'
+    description 'Creator of the stack'
+  end
 
+  parameters(:vpc_id) do
+    type 'String'
+  end
+
+  parameters(:subnet_ids) do
+    type 'CommaDelimitedList'
+  end
+  
+  parameters(:redis_instance_type) do
+    type 'String'
+    default 'cache.t2.micro'
+  end
+  
   parameters(:ssh_key_name) do
     type 'String'
     default 'solodev-sensu-shared'
@@ -29,13 +48,54 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     type 'String'
   end
 
-  %w(
-    security_group_id
-    primary_endpoint_address
-    primary_endpoint_port
-  ).each do |param|
-    parameters("redis_#{param}".to_sym) do
-      type 'String'
+  dynamic!(:ec2_security_group, :redis, :resource_name_suffix => :security_group) do
+    properties do
+      group_description join!(stack_name!, " Redis shared security group")
+      vpc_id ref!(:vpc_id)
+    end
+  end
+
+  resources(:redis_parameter_group) do
+    type 'AWS::ElastiCache::ParameterGroup'
+    properties do
+      description join!(
+        'redis-2.8 parameters for ', stack_name!
+      )
+      cache_parameter_group_family 'redis2.8'
+      # see http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html
+      # for supported properties
+      # Redis example:
+      properties do
+        _camel_keys_set(:auto_disable)
+        set!('slowlog-max-len', 256)
+      end
+    end
+  end
+
+  resources(:redis_subnet_group) do
+    type 'AWS::ElastiCache::SubnetGroup'
+    properties do
+      description join!(
+        stack_name!, " redis 2.8.24"
+      )
+      subnet_ids ref!(:subnet_ids)
+    end
+  end
+
+  resources(:redis_replication_group) do
+    type 'AWS::ElastiCache::ReplicationGroup'
+    properties do
+      replication_group_description join!(stack_name!, ' Redis 2.8.24')
+      automatic_failover_enabled 'false'
+      auto_minor_version_upgrade 'false'
+      num_cache_clusters 1
+      cache_node_type ref!(:redis_instance_type)
+      cache_parameter_group_name ref!(:redis_parameter_group)
+      cache_subnet_group_name ref!(:redis_subnet_group)
+      security_group_ids [attr!(:redis_security_group, :group_id)]
+      port '6379'
+      engine 'redis'
+      engine_version '2.8.24'
     end
   end
 
@@ -153,7 +213,7 @@ SparkleFormation.new(:sensu).load(:base).overrides do
 
   dynamic!(:ec2_security_group_ingress, :redis_sensu, :resource_name_suffix => :ingress_rule) do
     properties do
-      group_id ref!(:redis_security_group_id)
+      group_id ref!(:redis_security_group)
       source_security_group_id attr!(:sensu_security_group, :group_id)
       ip_protocol 'tcp'
       from_port 6379
@@ -258,8 +318,8 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       end
       custom_json do
         elasticache do
-          host ref!(:redis_primary_endpoint_address)
-          port ref!(:redis_primary_endpoint_port)
+          host attr!(:redis_replication_group, 'PrimaryEndPoint.Address')
+          port attr!(:redis_replication_group, 'PrimaryEndPoint.Port')
         end
       end
       configuration_manager do
@@ -420,6 +480,24 @@ SparkleFormation.new(:sensu).load(:base).overrides do
         subnet_id select!(i, ref!(:subnet_ids))
       end
       depends_on process_key!(:influxdb_instance)
+    end
+  end
+
+  outputs do
+    redis_security_group_id do
+      value attr!(:redis_security_group, :group_id)
+    end
+
+    redis_primary_endpoint_address do
+      value attr!(:redis_replication_group, 'PrimaryEndPoint.Address')
+    end
+
+    redis_primary_endpoint_port do
+      value attr!(:redis_replication_group, 'PrimaryEndPoint.Port')
+    end
+
+    sensu_dashboard_url do
+      value join!('http://', attr!(:sensu_layer_elb, 'DNSName'))
     end
   end
 end
