@@ -393,22 +393,6 @@ SparkleFormation.new(:sensu).load(:base).overrides do
     end
   end
 
-  2.times do |i|
-    resources("sensu_instance_#{i}".to_sym) do
-      type 'AWS::OpsWorks::Instance'
-      properties do
-        instance_type ref!(:sensu_instance_type)
-        layer_ids [ref!(:sensu_layer)]
-        os 'Amazon Linux 2016.03'
-        root_device_type 'ebs'
-        ssh_key_name ref!(:ssh_key_name)
-        stack_id ref!(:sensu_stack)
-        subnet_id select!(i, ref!(:subnet_ids))
-      end
-      depends_on process_key!(:rabbitmq_leader_instance)
-    end
-  end
-
   resources(:influxdb_instance) do
     type 'AWS::OpsWorks::Instance'
     properties do
@@ -421,5 +405,21 @@ SparkleFormation.new(:sensu).load(:base).overrides do
       subnet_id select!(1, ref!(:subnet_ids))
     end
     depends_on process_key!(:rabbitmq_leader_instance)
+  end
+
+  2.times do |i|
+    resources("sensu_instance_#{i}".to_sym) do
+      type 'AWS::OpsWorks::Instance'
+      properties do
+        instance_type ref!(:sensu_instance_type)
+        layer_ids [ref!(:sensu_layer)]
+        os 'Amazon Linux 2016.03'
+        root_device_type 'ebs'
+        ssh_key_name ref!(:ssh_key_name)
+        stack_id ref!(:sensu_stack)
+        subnet_id select!(i, ref!(:subnet_ids))
+      end
+      depends_on process_key!(:influxdb_instance)
+    end
   end
 end
