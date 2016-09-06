@@ -16,7 +16,7 @@ SparkleFormation.new(:sensu) do
   
   parameters(:redis_instance_type) do
     type 'String'
-    default 'cache.t2.micro'
+    default 'cache.m3.medium'
   end
   
   parameters(:ssh_key_name) do
