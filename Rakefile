@@ -125,8 +125,10 @@ desc "pushes ssl keys & certs to S3"
 task :push_ssl do
   Dir.chdir(ASSET_DIR) do
     Dir.glob("sensu/ssl/**/*").each do |file|
-      push_file_to_s3(file)
-      puts "Successfully pushed #{file} to S3"
+      unless File.directory?(file)
+        push_file_to_s3(file)
+        puts "Successfully pushed #{file} to S3"
+      end
     end
   end
 end

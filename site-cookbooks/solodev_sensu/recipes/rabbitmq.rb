@@ -13,7 +13,7 @@ node.run_state["solodev_sensu"]["rabbitmq_nodes"].each do |rabbitmq_node|
   end
 end
 
-set_sensu_state(node, "ssl", "server", "cacert", citadel["sensu/ssl/server/cacert.pem"])
+set_sensu_state(node, "ssl", "server", "cacert", citadel["sensu/ssl/ca/ca-cert.pem"])
 set_sensu_state(node, "ssl", "server", "cert", citadel["sensu/ssl/server/cert.pem"])
 set_sensu_state(node, "ssl", "server", "key", citadel["sensu/ssl/server/key.pem"])
 
