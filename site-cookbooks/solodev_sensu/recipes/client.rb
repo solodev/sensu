@@ -10,9 +10,11 @@ sensu_client node.name do
   address node["hostname"]
   subscriptions ["all", "roundrobin:all"]
   additional({
-    "instance_type" => "",
-    "customer_id" => ""
-  })
+      "ec2" => {
+        "instance_id" => node["ec2"]["instance_id"],
+        "instance_type" => node["ec2"]["instance_type"]
+      }
+    })
 end
 
 include_recipe "sensu::client_service"
