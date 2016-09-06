@@ -11,16 +11,7 @@ def run_command(command)
   system(command) || exit(2)
 end
 
-desc "creates a release (zip) of the cookbooks directory"
-task :create_release do
-  run_command("rm -f .librarian/chef/config")
-  run_command("bundle exec librarian-chef install")
-  release_path = "#{ASSET_DIR}/release-#{Time.now.to_i}.zip"
-  run_command("zip -r #{release_path} cookbooks")
-end
-
-desc "pushes the latest release to S3"
-task :push_latest_release do
+def push_file_to_s3(file)
   region = ENV.fetch("AWS_REGION", "us-east-1")
   bucket_region = ENV.fetch("AWS_BUCKET_REGION", region)
 
@@ -45,15 +36,29 @@ task :push_latest_release do
 
     directory = remote.buckets.get(S3_BUCKET)
 
-    release_file = Dir.glob("#{ASSET_DIR}/release-*.zip").max_by do |file|
+    remote_file = Miasma::Models::Storage::File.new(directory)
+    remote_file.name = file
+    remote_file.body = File.open(file, "r")
+    remote_file.save
+  end
+end
+
+desc "creates a release (zip) of the cookbooks directory"
+task :create_release do
+  run_command("rm -f .librarian/chef/config")
+  run_command("bundle exec librarian-chef install")
+  release_path = "#{ASSET_DIR}/release-#{Time.now.to_i}.zip"
+  run_command("zip -r #{release_path} cookbooks")
+end
+
+desc "pushes the latest release to S3"
+task :push_latest_release do
+  Dir.chdir(ASSET_DIR) do
+    release_file = Dir.glob("release-*.zip").max_by do |file|
       File.mtime(file)
     end
 
-    remote_file = Miasma::Models::Storage::File.new(directory)
-    remote_file.name = release_file.split("/").last
-    remote_file.body = File.open(release_file, "r")
-    remote_file.save
-
+    push_file_to_s3(release_file)
     puts "Successfully pushed latest release - #{release_file}"
   end
 end
@@ -116,6 +121,16 @@ task :create_ssl do
   end
 end
 
+desc "pushes ssl keys & certs to S3"
+task :push_ssl do
+  Dir.chdir(ASSET_DIR) do
+    Dir.glob("sensu/ssl/**/*").each do |file|
+      push_file_to_s3(file)
+      puts "Successfully pushed #{file} to S3"
+    end
+  end
+end
+
 desc "creates the dashboard private/public keypair"
 task :create_dashboard_keypair do
   dashboard_directory = File.join(SENSU_DIRECTORY, "dashboard")
@@ -128,6 +143,16 @@ task :create_dashboard_keypair do
       system("openssl rsa -in private.pem -pubout > public.pem")
     else
       puts "[skipping] keypair files for dashboard already exist"
+    end
+  end
+end
+
+desc "pushes the dashboard private/public keys to S3"
+task :push_dashboard_keypair do
+  Dir.chdir(ASSET_DIR) do
+    Dir.glob("sensu/dashboard/*").each do |file|
+      push_file_to_s3(file)
+      puts "Successfully pushed #{file} to S3"
     end
   end
 end
@@ -153,6 +178,14 @@ task :create_secrets do
   }
   File.open(secrets_file, "w") do |file|
     file.write(JSON.pretty_generate(secrets))
+  end
+end
+
+desc "pushes the secrets file to S3"
+task :push_secrets do
+  Dir.chdir(ASSET_DIR) do
+    push_file_to_s3("secrets.json")
+    puts "Successfully pushed secrets.json to S3"
   end
 end
 
