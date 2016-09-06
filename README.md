@@ -21,12 +21,11 @@ $ bundle exec librarian-chef install
 # create cookbooks artifact
 $ bundle exec rake
 # build the infrastructure stack
-$ bundle exec sfn create my-sensu-infra --file sensu_infra
+$ bundle exec sfn create my-sensu --file sensu
 # update the stack (e.g. after changing template)
-$ bundle exec sfn update my-sensu-infra --file sensu_infra
+$ bundle exec sfn update my-sensu --file sensu
 # destroy the stack
-$ bundle exec sfn destroy my-sensu-infra
-# print templates as json
+$ bundle exec sfn destroy my-sensu
+# print template as json
 $ bundle exec sfn print --file sensu
-$ bundle exec sfn print --file elasticache
 ```
