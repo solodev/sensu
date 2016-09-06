@@ -1,0 +1,142 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "Creator": {
+      "Type": "String",
+      "Description": "Creator of the stack",
+      "Default": "portertech"
+    },
+    "VpcId": {
+      "Type": "String"
+    },
+    "SubnetIds": {
+      "Type": "CommaDelimitedList"
+    },
+    "RedisInstanceType": {
+      "Type": "String",
+      "Default": "cache.t2.micro"
+    }
+  },
+  "Resources": {
+    "RedisSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              " Redis shared security group"
+            ]
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "RedisParameterGroup": {
+      "Type": "AWS::ElastiCache::ParameterGroup",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "redis-2.8 parameters for ",
+              {
+                "Ref": "AWS::StackName"
+              }
+            ]
+          ]
+        },
+        "CacheParameterGroupFamily": "redis2.8",
+        "Properties": {
+          "slowlog-max-len": 256
+        }
+      }
+    },
+    "RedisSubnetGroup": {
+      "Type": "AWS::ElastiCache::SubnetGroup",
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              " redis 2.8.24"
+            ]
+          ]
+        },
+        "SubnetIds": {
+          "Ref": "SubnetIds"
+        }
+      }
+    },
+    "RedisReplicationGroup": {
+      "Type": "AWS::ElastiCache::ReplicationGroup",
+      "Properties": {
+        "ReplicationGroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              " Redis 2.8.24"
+            ]
+          ]
+        },
+        "AutomaticFailoverEnabled": "false",
+        "AutoMinorVersionUpgrade": "false",
+        "NumCacheClusters": 1,
+        "CacheNodeType": {
+          "Ref": "RedisInstanceType"
+        },
+        "CacheParameterGroupName": {
+          "Ref": "RedisParameterGroup"
+        },
+        "CacheSubnetGroupName": {
+          "Ref": "RedisSubnetGroup"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "RedisSecurityGroup"
+          }
+        ],
+        "Port": "6379",
+        "Engine": "redis",
+        "EngineVersion": "2.8.24"
+      }
+    }
+  },
+  "Outputs": {
+    "RedisSecurityGroupId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RedisSecurityGroup",
+          "GroupId"
+        ]
+      }
+    },
+    "RedisPrimaryEndpointAddress": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RedisReplicationGroup",
+          "PrimaryEndPoint.Address"
+        ]
+      }
+    },
+    "RedisPrimaryEndpointPort": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RedisReplicationGroup",
+          "PrimaryEndPoint.Port"
+        ]
+      }
+    }
+  }
+}

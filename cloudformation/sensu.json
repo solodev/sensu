@@ -1,0 +1,862 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "Creator": {
+      "Type": "String",
+      "Description": "Creator of the stack",
+      "Default": "portertech"
+    },
+    "VpcId": {
+      "Type": "String"
+    },
+    "SubnetIds": {
+      "Type": "CommaDelimitedList"
+    },
+    "SshKeyName": {
+      "Type": "String",
+      "Default": "solodev-sensu-shared"
+    },
+    "SensuInstanceType": {
+      "Type": "String",
+      "Default": "m3.medium"
+    },
+    "RabbitmqInstanceType": {
+      "Type": "String",
+      "Default": "m3.medium"
+    },
+    "InfluxdbInstanceType": {
+      "Type": "String",
+      "Default": "m3.medium"
+    },
+    "BucketName": {
+      "Type": "String",
+      "Default": "solodev-sensu-opsworks"
+    },
+    "ArtifactPath": {
+      "Type": "String"
+    },
+    "RedisSecurityGroupId": {
+      "Type": "String"
+    },
+    "RedisPrimaryEndpointAddress": {
+      "Type": "String"
+    },
+    "RedisPrimaryEndpointPort": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "SensuIamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Path": "/",
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "PowerUserPolicy",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Sid": "PowerUserStmt",
+                  "Effect": "Allow",
+                  "NotAction": "iam:*",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "OpsworksServiceIamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Path": "/",
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "opsworks.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OpsWorksService",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "rds:*",
+                    "ec2:*",
+                    "iam:PassRole",
+                    "cloudwatch:GetMetricStatistics",
+                    "elasticloadbalancing:*"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "SensuIamInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "SensuIamRole"
+          }
+        ]
+      }
+    },
+    "SensuElbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackId"
+              },
+              " Sensu ELB security group"
+            ]
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "80",
+            "ToPort": "80",
+            "IpProtocol": "tcp"
+          }
+        ]
+      }
+    },
+    "SensuSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackId"
+              },
+              " Sensu shared security group"
+            ]
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "22",
+            "ToPort": "22",
+            "IpProtocol": "tcp"
+          }
+        ]
+      }
+    },
+    "SensuDashboardIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "SensuSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "SensuElbSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 3000,
+        "ToPort": 3000
+      }
+    },
+    "RedisSensuIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RedisSecurityGroupId"
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "SensuSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 6379,
+        "ToPort": 6379
+      }
+    },
+    "RabbitmqSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackId"
+              },
+              " RabbitMQ shared security group"
+            ]
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "5671",
+            "ToPort": "5671",
+            "IpProtocol": "tcp"
+          }
+        ]
+      }
+    },
+    "RabbitmqEpmdIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "RabbitmqSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "RabbitmqSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 4369,
+        "ToPort": 4369
+      }
+    },
+    "RabbitmqNodeIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "RabbitmqSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "RabbitmqSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 25671,
+        "ToPort": 25672
+      }
+    },
+    "InfluxdbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::StackId"
+              },
+              " InfluxDB security group"
+            ]
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "8083",
+            "ToPort": "8083",
+            "IpProtocol": "tcp"
+          }
+        ]
+      }
+    },
+    "InfluxdbSensuIngressRule": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "InfluxdbSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "SensuSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8080,
+        "ToPort": 8090
+      }
+    },
+    "SensuIamUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Policies": [
+          {
+            "PolicyName": "allow_s3_cookbook_access",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "BucketName"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "BucketName"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "SensuIamAccessKey": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "SensuIamUser"
+        }
+      }
+    },
+    "SensuStack": {
+      "Type": "AWS::OpsWorks::Stack",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceRoleArn": {
+          "Fn::GetAtt": [
+            "OpsworksServiceIamRole",
+            "Arn"
+          ]
+        },
+        "DefaultInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "UseCustomCookbooks": "true",
+        "CustomCookbooksSource": {
+          "Type": "s3",
+          "Username": {
+            "Ref": "SensuIamAccessKey"
+          },
+          "Password": {
+            "Fn::GetAtt": [
+              "SensuIamAccessKey",
+              "SecretAccessKey"
+            ]
+          },
+          "Url": {
+            "Fn::Join": [
+              "",
+              [
+                "https://",
+                {
+                  "Ref": "BucketName"
+                },
+                ".s3.amazonaws.com/",
+                {
+                  "Ref": "ArtifactPath"
+                }
+              ]
+            ]
+          }
+        },
+        "CustomJson": {
+          "Elasticache": {
+            "Host": {
+              "Ref": "RedisPrimaryEndpointAddress"
+            },
+            "Port": {
+              "Ref": "RedisPrimaryEndpointPort"
+            }
+          }
+        },
+        "ConfigurationManager": {
+          "Name": "Chef",
+          "Version": "12"
+        },
+        "DefaultSubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        },
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "RabbitmqLeaderLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "Name": "rabbitmq-leader",
+        "Shortname": "rabbitmq-leader",
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "Type": "custom",
+        "EnableAutoHealing": "false",
+        "AutoAssignElasticIps": "true",
+        "AutoAssignPublicIps": "true",
+        "CustomInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "CustomSecurityGroupIds": [
+          {
+            "Ref": "SensuSecurityGroup"
+          },
+          {
+            "Ref": "RabbitmqSecurityGroup"
+          }
+        ],
+        "CustomRecipes": {
+          "Setup": [
+            "solodev_sensu::rabbitmq"
+          ],
+          "Configure": [
+            "solodev_sensu::rabbitmq_leader",
+            "solodev_sensu::client"
+          ],
+          "Deploy": [
+
+          ],
+          "Undeploy": [
+
+          ],
+          "Shutdown": [
+
+          ]
+        }
+      }
+    },
+    "RabbitmqFollowerLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "Name": "rabbitmq-follower",
+        "Shortname": "rabbitmq-follower",
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "Type": "custom",
+        "EnableAutoHealing": "false",
+        "AutoAssignElasticIps": "true",
+        "AutoAssignPublicIps": "true",
+        "CustomInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "CustomSecurityGroupIds": [
+          {
+            "Ref": "SensuSecurityGroup"
+          },
+          {
+            "Ref": "RabbitmqSecurityGroup"
+          }
+        ],
+        "CustomRecipes": {
+          "Setup": [
+            "solodev_sensu::rabbitmq"
+          ],
+          "Configure": [
+            "solodev_sensu::rabbitmq_follower",
+            "solodev_sensu::client"
+          ],
+          "Deploy": [
+
+          ],
+          "Undeploy": [
+
+          ],
+          "Shutdown": [
+
+          ]
+        }
+      }
+    },
+    "SensuLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "Name": "sensu",
+        "Shortname": "sensu",
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "Type": "custom",
+        "EnableAutoHealing": "false",
+        "AutoAssignElasticIps": "true",
+        "AutoAssignPublicIps": "true",
+        "CustomInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "CustomSecurityGroupIds": [
+          {
+            "Ref": "SensuSecurityGroup"
+          }
+        ],
+        "CustomRecipes": {
+          "Setup": [
+            "solodev_sensu::client",
+            "solodev_sensu::enterprise"
+          ],
+          "Configure": [
+            "solodev_sensu::client",
+            "solodev_sensu::enterprise"
+          ],
+          "Deploy": [
+
+          ],
+          "Undeploy": [
+
+          ],
+          "Shutdown": [
+
+          ]
+        }
+      }
+    },
+    "SensuLayerElb": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "SecurityGroups": [
+          {
+            "Ref": "SensuElbSecurityGroup"
+          }
+        ],
+        "Subnets": {
+          "Ref": "SubnetIds"
+        },
+        "HealthCheck": {
+          "HealthyThreshold": 5,
+          "Interval": 10,
+          "Target": "http:3000/",
+          "UnhealthyThreshold": 3,
+          "Timeout": 5
+        },
+        "Listeners": [
+          {
+            "InstancePort": "3000",
+            "LoadBalancerPort": "80",
+            "Protocol": "http"
+          }
+        ]
+      }
+    },
+    "SensuLayerElbAttachment": {
+      "Type": "AWS::OpsWorks::ElasticLoadBalancerAttachment",
+      "Properties": {
+        "ElasticLoadBalancerName": {
+          "Ref": "SensuLayerElb"
+        },
+        "LayerId": {
+          "Ref": "SensuLayer"
+        }
+      }
+    },
+    "InfluxdbLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "Name": "influxdb",
+        "Shortname": "influxdb",
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "Type": "custom",
+        "EnableAutoHealing": "false",
+        "AutoAssignElasticIps": "true",
+        "AutoAssignPublicIps": "true",
+        "CustomInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "CustomSecurityGroupIds": [
+          {
+            "Ref": "InfluxdbSecurityGroup"
+          }
+        ],
+        "CustomRecipes": {
+          "Setup": [
+            "solodev_sensu::influxdb",
+            "solodev_sensu::client"
+          ],
+          "Configure": [
+            "solodev_sensu::influxdb",
+            "solodev_sensu::client"
+          ],
+          "Deploy": [
+
+          ],
+          "Undeploy": [
+
+          ],
+          "Shutdown": [
+
+          ]
+        }
+      }
+    },
+    "RabbitmqLeaderInstance": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "RabbitmqInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "RabbitmqLeaderLayer"
+          }
+        ],
+        "Os": "CentOS Linux 7",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      }
+    },
+    "RabbitmqFollower1Instance": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "RabbitmqInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "RabbitmqFollowerLayer"
+          }
+        ],
+        "Os": "CentOS Linux 7",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "RabbitmqLeaderInstance"
+    },
+    "RabbitmqFollower2Instance": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "RabbitmqInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "RabbitmqFollowerLayer"
+          }
+        ],
+        "Os": "CentOS Linux 7",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            2,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "RabbitmqLeaderInstance"
+    },
+    "InfluxdbInstance": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InfluxdbInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "InfluxdbLayer"
+          }
+        ],
+        "Os": "CentOS Linux 7",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "RabbitmqLeaderInstance"
+    },
+    "SensuInstance0": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "SensuInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "SensuLayer"
+          }
+        ],
+        "Os": "Amazon Linux 2016.03",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            0,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "InfluxdbInstance"
+    },
+    "SensuInstance1": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "SensuInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "SensuLayer"
+          }
+        ],
+        "Os": "Amazon Linux 2016.03",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            1,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "InfluxdbInstance"
+    }
+  }
+}
