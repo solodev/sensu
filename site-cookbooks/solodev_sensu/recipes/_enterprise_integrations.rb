@@ -14,9 +14,11 @@ influxdb_password = solodev_secrets["influxdb"]["password"]
 
 sensu_snippet "influxdb" do
   content({
-      :host influxdb_host,
+      :host => influxdb_host,
       :port => 8086,
       :username => influxdb_username,
-      :password => influxdb_password
+      :password => influxdb_password,
+      :api_version => "0.9",
+      :database => "sensu"
     })
 end
