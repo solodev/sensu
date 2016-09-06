@@ -495,5 +495,9 @@ SparkleFormation.new(:sensu) do
     redis_primary_endpoint_port do
       value attr!(:redis_replication_group, 'PrimaryEndPoint.Port')
     end
+
+    sensu_dashboard_url do
+      value join!('http://', attr!(:sensu_layer_elb, 'DNSName'))
+    end
   end
 end
