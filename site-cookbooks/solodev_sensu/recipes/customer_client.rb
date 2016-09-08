@@ -16,28 +16,7 @@ set_sensu_state(node, "ssl", "client", "cert", citadel["sensu/ssl/client/cert.pe
 set_sensu_state(node, "ssl", "client", "key", citadel["sensu/ssl/client/key.pem"])
 
 include_recipe "sensu"
-
-# TODO: Determine the appropriate OpsWorks stack custom JSON
-# keyspace for the customer ID.
-solodev_custom_json = node["solodev"] || {}
-customer_id = solodev_custom_json["customer_id"]
-
-client_subscriptions = ["all", "roundrobin:all"]
-if customer_id
-  client_subscriptions << "customers"
-  client_subscriptions << "customer:#{customer_id}"
-end
-
-sensu_client node.name do
-  address node["hostname"]
-  subscriptions client_subscriptions
-  additional({
-      "customer_id" => customer_id,
-      "ec2" => {
-        "instance_id" => node["ec2"]["instance_id"],
-        "instance_type" => node["ec2"]["instance_type"]
-      }
-    })
-end
-
+include_recipe "solodev_sensu::_client_config"
+include_recipe "solodev_sensu::_client_extensions"
+include_recipe "solodev_sensu::_client_plugins"
 include_recipe "sensu::client_service"

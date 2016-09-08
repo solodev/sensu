@@ -13,5 +13,6 @@ node.override["sensu"]["redis"]["port"] = node["Elasticache"]["Port"].to_i
 
 include_recipe "sensu::enterprise"
 include_recipe "solodev_sensu::_enterprise_integrations"
+include_recipe "solodev_sensu::_enterprise_checks"
 include_recipe "sensu::enterprise_service"
 include_recipe "solodev_sensu::_enterprise_dashboard"
