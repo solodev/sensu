@@ -5,11 +5,6 @@ require "rest-client"
 require "json"
 
 class CustomerInstanceTypesMetrics < Sensu::Plugin::Metric::CLI::Graphite
-  option :scheme,
-  description: "Metric naming scheme, text to prepend to .$parent.$child",
-  long: "--scheme SCHEME",
-  default: "customers.instance_types"
-
   def api_request(resource)
     resource_url = "http://127.0.0.1:4567#{resource}"
     request = RestClient::Resource.new(resource_url, timeout: 30)
@@ -34,7 +29,7 @@ class CustomerInstanceTypesMetrics < Sensu::Plugin::Metric::CLI::Graphite
     timestamp = Time.now.to_i
     types_collection[:summary].each do |summary|
       parts = summary[:output].rpartition("-")
-      metric_path = [config[:scheme], parts.first, parts.last.sub(".", "_")].join(".")
+      metric_path = ["customers", parts.first, "instance_types", parts.last.sub(".", "_")].join(".")
       output(metric_path, summary[:total], timestamp)
     end
   end
