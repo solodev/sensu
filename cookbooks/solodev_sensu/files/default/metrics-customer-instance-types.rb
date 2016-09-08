@@ -1,7 +1,6 @@
 #! /usr/bin/env ruby
 
 require "sensu-plugin/metric/cli"
-require "socket"
 require "rest-client"
 require "json"
 
@@ -9,7 +8,7 @@ class CustomerInstanceTypesMetrics < Sensu::Plugin::Metric::CLI::Graphite
   option :scheme,
   description: "Metric naming scheme, text to prepend to .$parent.$child",
   long: "--scheme SCHEME",
-  default: "#{Socket.gethostname}.instance_types"
+  default: "customers.instance_types"
 
   def api_request(resource)
     resource_url = "http://127.0.0.1:4567#{resource}"
