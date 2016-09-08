@@ -17,3 +17,18 @@ influxdb_user influxdb_username do
   password influxdb_password
   databases ["sensu"]
 end
+
+include_recipe "grafana"
+
+grafana_datasource "influxdb" do
+  source({
+      :type => "influxdb_09",
+      :url => "http://127.0.0.1:8086",
+      :access => "proxy",
+      :database => "sensu",
+      :user => influxdb_username,
+      :password => influxdb_password,
+      :isdefault => true
+    })
+  action :create
+end

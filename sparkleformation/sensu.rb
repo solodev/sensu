@@ -1,6 +1,6 @@
 SparkleFormation.new(:sensu) do
   set!('AWSTemplateFormatVersion', '2010-09-09')
- 
+
   parameters(:creator) do
     type 'String'
     description 'Creator of the stack'
@@ -13,12 +13,12 @@ SparkleFormation.new(:sensu) do
   parameters(:subnet_ids) do
     type 'CommaDelimitedList'
   end
-  
+
   parameters(:redis_instance_type) do
     type 'String'
     default 'cache.m3.medium'
   end
-  
+
   parameters(:ssh_key_name) do
     type 'String'
     default 'solodev-sensu-shared'
@@ -255,8 +255,8 @@ SparkleFormation.new(:sensu) do
       security_group_ingress array!(
         -> {
           cidr_ip '0.0.0.0/0'
-          from_port '8083'
-          to_port '8083'
+          from_port '80'
+          to_port '80'
           ip_protocol 'tcp'
         }
       )

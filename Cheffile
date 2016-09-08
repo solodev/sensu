@@ -3,4 +3,11 @@
 
 site "https://supermarket.chef.io/api/v1"
 
+# Ohai >= 4 breaks plugin loading for nginx.
+cookbook "ohai", "3.0.1"
+
+# Must include grafana here to work around a dependency solver issue.
+cookbook "grafana"
+
+# Remaining dependency cookbooks are pulled in using cookbook metadata.
 cookbook "solodev_sensu", :path => "site-cookbooks/solodev_sensu"
