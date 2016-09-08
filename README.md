@@ -66,3 +66,11 @@ $ bundle exec sfn update sensu-test-yellow --file sensu -R Sensu__ArtifactPath:r
 
 [Sfn]: Apply this stack update? (Y/N): y
 ```
+
+## Known issues
+
+OpsWorks does not seem to guarantee unique hostnames, it sometimes
+creates multiple instances within a layer with the same hostname. This
+causes issues with RabbitMQ clustering and Sensu client configuration.
+Provisioning another stack seems to be the easiest way to work around
+the issue.

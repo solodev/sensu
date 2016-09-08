@@ -36,6 +36,15 @@ sensu_check "customer_instance_types_metrics" do
   interval 60
   timeout 30
   additional({
-      :ttl => 120
+      :ttl => 240
+    })
+end
+
+sensu_check "run_backups" do
+  command "duply backup backup" # Sensu user needs access/permissions
+  subscribers ["backup"]
+  interval 86400 # Run every 24 hours
+  additional({
+      :ttl => 129600 # 36 hours
     })
 end
