@@ -10,6 +10,7 @@ depends "sensu"
 depends "hostsfile"
 depends "citadel"
 depends "influxdb"
+depends "build-essential"
 
 # If you upload to Supermarket you should set this so your cookbook
 # gets a `View Issues` link

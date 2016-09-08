@@ -20,6 +20,10 @@ sensu_check "customer_instance_types_collection" do
   interval 30
 end
 
+include_recipe "build-essential"
+
+sensu_gem "rest-client"
+
 cookbook_file "/etc/sensu/plugins/metrics-customer-instance-types.rb" do
   mode "0755"
 end
