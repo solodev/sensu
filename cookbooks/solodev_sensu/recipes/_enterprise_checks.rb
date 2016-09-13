@@ -40,6 +40,18 @@ sensu_check "customer_instance_types_metrics" do
     })
 end
 
+sensu_check "customer_billing_metrics" do
+  type "metric"
+  command "metrics-customer-billing.rb -i 30m"
+  handlers ["influxdb"]
+  subscribers ["roundrobin:influxdb"]
+  interval 1800
+  timeout 30
+  additional({
+      :ttl => 1900
+    })
+end
+
 sensu_check "run_backups" do
   command "duply backup backup" # Sensu user needs access/permissions
   subscribers ["backup"]

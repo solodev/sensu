@@ -32,3 +32,11 @@ grafana_datasource "influxdb" do
     })
   action :create
 end
+
+include_recipe "build-essential"
+
+sensu_gem "rest-client"
+
+cookbook_file "/etc/sensu/plugins/metrics-customer-billing.rb" do
+  mode "0755"
+end
