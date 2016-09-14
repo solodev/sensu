@@ -25,15 +25,29 @@ class CustomerBillingMetrics < Sensu::Plugin::Metric::CLI::Graphite
     request = RestClient::Resource.new(resource_url, timeout: 30)
     JSON.parse(request.get, :symbolize_names => true)
   rescue Errno::ECONNREFUSED
-    warning "Connection refused"
+    warning "InfluxDB connection refused"
   rescue RestClient::RequestFailed
-    warning "Request failed"
+    warning "InfluxDB request failed"
   rescue RestClient::RequestTimeout
-    warning "Connection timed out"
+    warning "InfluxDB connection timed out"
   rescue RestClient::Unauthorized
-    warning "Missing or incorrect InfluxDB API credentials"
+    warning "Missing or incorrect InfluxDB credentials"
   rescue JSON::ParserError
-    warning "InfluxDB API returned invalid JSON"
+    warning "InfluxDB returned invalid JSON"
+  end
+
+  def send_billing_report(report)
+    resource_url = "https://www.solodev.com/_resources/app/php/aws-usage"
+    request = RestClient::Resource.new(resource_url, timeout: 30)
+    request.post({:payload => JSON.dump(report)})
+  rescue Errno::ECONNREFUSED
+    warning "Solodev connection refused"
+  rescue RestClient::RequestFailed
+    warning "Solodev request failed"
+  rescue RestClient::RequestTimeout
+    warning "Solodev connection timed out"
+  rescue RestClient::Unauthorized
+    warning "Missing or incorrect Solodev credentials"
   end
 
   def get_customer_instance_types_counters
@@ -127,6 +141,7 @@ class CustomerBillingMetrics < Sensu::Plugin::Metric::CLI::Graphite
   def run
     timestamp = Time.now.to_i
     report = create_billing_report
+    send_billing_report(report)
     report.each do |customer_id, billing_info|
       billing_info[:metrics].each do |metric, value|
         if value.is_a?(Numeric)

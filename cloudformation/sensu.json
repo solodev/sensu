@@ -757,12 +757,12 @@
         ],
         "CustomRecipes": {
           "Setup": [
-            "solodev_sensu::influxdb",
-            "solodev_sensu::client"
+            "solodev_sensu::client",
+            "solodev_sensu::influxdb"
           ],
           "Configure": [
-            "solodev_sensu::influxdb",
-            "solodev_sensu::client"
+            "solodev_sensu::client",
+            "solodev_sensu::influxdb"
           ],
           "Deploy": [
 
