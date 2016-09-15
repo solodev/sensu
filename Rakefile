@@ -164,6 +164,9 @@ task :create_secrets do
   secrets_file = File.join(ASSET_DIR, "secrets.json")
   secrets = {
     :sensu => {
+      :rabbitmq => {
+        :hosts => ENV.fetch("RABBITMQ_HOSTS", "").split(",")
+      },
       :enterprise => {
         :repository => {
           :credentials => {
