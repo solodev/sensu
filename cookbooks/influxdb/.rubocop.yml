@@ -1,0 +1,6 @@
+Metrics/LineLength:
+  Enabled: false
+
+Style/SpaceBeforeFirstArg:
+  Exclude:
+    - '**/metadata.rb'

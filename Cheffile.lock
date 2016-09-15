@@ -27,7 +27,7 @@ SITE
     homebrew (2.1.2)
       build-essential (>= 2.1.2)
     hostsfile (2.4.5)
-    influxdb (4.2.0)
+    influxdb (4.4.1)
       apt (~> 2.7)
       chef_handler (>= 0.0.0)
       compat_resource (>= 0.0.0)
@@ -81,12 +81,15 @@ SITE
       yum (>= 3.2)
       yum-epel (>= 0.0.0)
 
-PATH
-  remote: site-cookbooks/solodev_sensu
+GIT
+  remote: https://github.com/solodev/solodev-sensu.git
+  ref: master
+  sha: 14f01615e174df931d087988120b9803964d3bef
   specs:
     solodev_sensu (0.1.0)
       build-essential (>= 0.0.0)
       citadel (>= 0.0.0)
+      grafana (>= 0.0.0)
       hostsfile (>= 0.0.0)
       influxdb (>= 0.0.0)
       sensu (>= 0.0.0)
