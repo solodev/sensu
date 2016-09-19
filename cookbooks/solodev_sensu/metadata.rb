@@ -4,7 +4,7 @@ maintainer_email 'smoore@solodev.com'
 license 'all_rights'
 description 'Installs/Configures solodev_sensu'
 long_description 'Installs/Configures solodev_sensu'
-version '0.1.11'
+version '1.1.0'
 
 depends "sensu"
 depends "hostsfile"
@@ -12,6 +12,7 @@ depends "citadel"
 depends "influxdb", "4.2.0"
 depends "grafana"
 depends "build-essential"
+depends "sudo"
 
 # If you upload to Supermarket you should set this so your cookbook
 # gets a `View Issues` link

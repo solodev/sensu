@@ -72,6 +72,7 @@ SITE
       yum (>= 0.0.0)
     seven_zip (2.0.2)
       windows (>= 1.2.2)
+    sudo (3.0.0)
     ulimit (0.4.0)
     windows (2.0.2)
     yum (3.13.0)
@@ -83,16 +84,17 @@ SITE
 
 GIT
   remote: https://github.com/solodev/solodev-sensu.git
-  ref: 0.1.11
-  sha: dba5b0bd58b40dab4d6a3e3f467819734a478765
+  ref: 1.1.0
+  sha: 556c5252ddefc6c18caccb35582a5767a11e9e2d
   specs:
-    solodev_sensu (0.1.11)
+    solodev_sensu (1.1.0)
       build-essential (>= 0.0.0)
       citadel (>= 0.0.0)
       grafana (>= 0.0.0)
       hostsfile (>= 0.0.0)
       influxdb (= 4.2.0)
       sensu (>= 0.0.0)
+      sudo (>= 0.0.0)
 
 DEPENDENCIES
   grafana (>= 0)
