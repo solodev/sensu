@@ -14,7 +14,7 @@
 
 # By default Redis does not run as a daemon. Use 'yes' if you need it.
 # Note that Redis will write a pid file in /var/run/redis.pid when daemonized.
-<% if @job_control == 'initd' %>
+<% if @job_control == 'initd' || @job_control == 'rcinit' %>
 daemonize yes
 <% end %>
 
@@ -43,6 +43,27 @@ tcp-backlog <%= @tcpbacklog %>
 # bind 127.0.0.1
 <% unless @address.nil? %>
   <%= "bind #{@address.respond_to?(:join) ? @address.join(" ") : @address }" %>
+<% end %>
+
+# Protected mode is a layer of security protection, in order to avoid that
+# Redis instances left open on the internet are accessed and exploited.
+#
+# When protected mode is on and if:
+#
+# 1) The server is not binding explicitly to a set of addresses using the
+#    "bind" directive.
+# 2) No password is configured.
+#
+# The server only accepts connections from clients connecting from the
+# IPv4 and IPv6 loopback addresses 127.0.0.1 and ::1, and from Unix domain
+# sockets.
+#
+# By default protected mode is enabled. You should disable it only if
+# you are sure you want clients from other hosts to connect to Redis
+# even if no authentication is configured, nor a specific set of interfaces
+# are explicitly listed using the "bind" directive.
+<% unless @protected_mode.nil? %>
+protected-mode <%= @protected_mode %>
 <% end %>
 
 # Specify the path for the Unix socket that will be used to listen for

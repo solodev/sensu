@@ -2,7 +2,7 @@ SITE
   remote: https://supermarket.chef.io/api/v1
   specs:
     apt (2.9.2)
-    ark (1.2.0)
+    ark (2.0.0)
       build-essential (>= 0.0.0)
       seven_zip (>= 0.0.0)
       windows (>= 0.0.0)
@@ -10,11 +10,11 @@ SITE
       compat_resource (>= 12.14)
       mingw (>= 1.1)
       seven_zip (>= 0.0.0)
-    chef_handler (1.4.0)
+    chef_handler (2.0.0)
     citadel (1.1.0)
-    compat_resource (12.14.1)
+    compat_resource (12.14.3)
     dpkg_autostart (0.2.0)
-    erlang (3.0.0)
+    erlang (4.0.0)
       apt (>= 1.7.0)
       build-essential (>= 0.0.0)
       yum (~> 3.0)
@@ -27,7 +27,7 @@ SITE
     homebrew (2.1.2)
       build-essential (>= 2.1.2)
     hostsfile (2.4.5)
-    influxdb (4.4.1)
+    influxdb (4.2.0)
       apt (~> 2.7)
       chef_handler (>= 0.0.0)
       compat_resource (>= 0.0.0)
@@ -57,7 +57,7 @@ SITE
       erlang (>= 0.0.0)
       yum-epel (>= 0.0.0)
       yum-erlang_solutions (>= 0.0.0)
-    redisio (2.4.2)
+    redisio (2.5.0)
       build-essential (>= 0.0.0)
       ulimit (>= 0.1.2)
     runit (2.0.0)
@@ -75,7 +75,7 @@ SITE
     ulimit (0.4.0)
     windows (2.0.2)
     yum (3.13.0)
-    yum-epel (1.0.0)
+    yum-epel (1.0.1)
       yum (>= 3.6)
     yum-erlang_solutions (1.0.0)
       yum (>= 3.2)
@@ -83,15 +83,15 @@ SITE
 
 GIT
   remote: https://github.com/solodev/solodev-sensu.git
-  ref: master
-  sha: 14f01615e174df931d087988120b9803964d3bef
+  ref: 0.1.11
+  sha: dba5b0bd58b40dab4d6a3e3f467819734a478765
   specs:
-    solodev_sensu (0.1.0)
+    solodev_sensu (0.1.11)
       build-essential (>= 0.0.0)
       citadel (>= 0.0.0)
       grafana (>= 0.0.0)
       hostsfile (>= 0.0.0)
-      influxdb (>= 0.0.0)
+      influxdb (= 4.2.0)
       sensu (>= 0.0.0)
 
 DEPENDENCIES

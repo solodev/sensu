@@ -421,7 +421,7 @@ SparkleFormation.new(:sensu) do
       custom_security_group_ids [ref!(:influxdb_security_group)]
       custom_recipes do
         setup [ "solodev_sensu::client", "solodev_sensu::influxdb" ]
-        configure [ "solodev_sensu::client", "solodev_sensu::influxdb" ]
+        configure [ "solodev_sensu::client", "solodev_sensu::influxdb", "solodev_sensu::influxdb_config" ]
         deploy []
         undeploy []
         shutdown []

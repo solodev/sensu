@@ -30,7 +30,9 @@ customer_id = solodev_custom_json["customer_id"] || "solodev-sensu"
 
 client_subscriptions << "customer:#{customer_id}"
 
-sensu_client node.name do
+client_name = [node["hostname"], node["ec2"]["instance_id"]].join("-")
+
+sensu_client client_name do
   address node["hostname"]
   subscriptions client_subscriptions
   additional({

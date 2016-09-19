@@ -102,17 +102,6 @@ influxdb_retention_policy "foodb default retention policy" do
 end
 ```
 
-### influxdb\_continuous\_query
-This resources configures a continuous query on a given database.
-
-```ruby
-influxdb_continuous_query "test_continuous_query" do
-  database 'foodb'
-  query 'SELECT min(mouse) INTO min_mouse FROM zoo GROUP BY time(30m)'
-  action :create
-end
-```
-
 ## Client Libraries
 Right now, this cookbook only supports the Ruby and CLI client libraries so as
 not to add too many dependencies. That might change in the near future. By
@@ -133,11 +122,6 @@ Then to run tests:
 
     rake # Quick tests only (rubocop + minitest)
     rake test:complete # All tests (rubocop + minitest + kitchen)
-
-## Release Steps
-
-1. Run through Deploy step in Wercker
-2. `cd ..;  knife supermarket share influxdb "Monitoring & Trending" -o .`
 
 ## License
 This project is licensed under the MIT license

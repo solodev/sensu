@@ -762,7 +762,8 @@
           ],
           "Configure": [
             "solodev_sensu::client",
-            "solodev_sensu::influxdb"
+            "solodev_sensu::influxdb",
+            "solodev_sensu::influxdb_config"
           ],
           "Deploy": [
 

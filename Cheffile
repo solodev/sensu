@@ -10,4 +10,4 @@ cookbook "ohai", "3.0.1"
 cookbook "grafana"
 
 # Remaining dependency cookbooks are pulled in using cookbook metadata.
-cookbook "solodev_sensu", :git => "https://github.com/solodev/solodev-sensu.git"
+cookbook "solodev_sensu", :git => "https://github.com/solodev/solodev-sensu.git", :ref => "0.1.11"
