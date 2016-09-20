@@ -331,11 +331,20 @@ SparkleFormation.new(:sensu) do
     end
   end
 
+  [1, 2, 3].each do |i|
+    resources("rabbitmq_elastic_ip_#{i}".to_sym) do
+      type 'AWS::EC2::EIP'
+      properties do
+        domain ref!(:vpc_id)
+      end
+    end
+  end
+
   resources(:rabbitmq_leader_layer) do
     type 'AWS::OpsWorks::Layer'
     properties do
-      name "rabbitmq-leader"
-      shortname "rabbitmq-leader"
+      name 'rabbitmq-leader'
+      shortname 'rabbitmq-leader'
       stack_id ref!(:sensu_stack)
       type 'custom'
       enable_auto_healing 'true'
@@ -385,7 +394,7 @@ SparkleFormation.new(:sensu) do
       stack_id ref!(:sensu_stack)
       type 'custom'
       enable_auto_healing 'true'
-      auto_assign_elastic_ips 'true'
+      auto_assign_elastic_ips 'false'
       auto_assign_public_ips 'true'
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       custom_security_group_ids [ref!(:sensu_security_group)]
@@ -437,7 +446,7 @@ SparkleFormation.new(:sensu) do
       stack_id ref!(:sensu_stack)
       type 'custom'
       enable_auto_healing 'true'
-      auto_assign_elastic_ips 'true'
+      auto_assign_elastic_ips 'false'
       auto_assign_public_ips 'true'
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
       custom_security_group_ids [ref!(:influxdb_security_group)]

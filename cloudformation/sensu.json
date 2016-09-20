@@ -558,6 +558,30 @@
         }
       }
     },
+    "RabbitmqElasticIp1": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "RabbitmqElasticIp2": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "RabbitmqElasticIp3": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": {
+          "Ref": "VpcId"
+        }
+      }
+    },
     "RabbitmqLeaderLayer": {
       "Type": "AWS::OpsWorks::Layer",
       "Properties": {
@@ -706,7 +730,7 @@
         },
         "Type": "custom",
         "EnableAutoHealing": "true",
-        "AutoAssignElasticIps": "true",
+        "AutoAssignElasticIps": "false",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
           "Fn::GetAtt": [
@@ -788,7 +812,7 @@
         },
         "Type": "custom",
         "EnableAutoHealing": "true",
-        "AutoAssignElasticIps": "true",
+        "AutoAssignElasticIps": "false",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
           "Fn::GetAtt": [
