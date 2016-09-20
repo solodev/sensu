@@ -51,3 +51,9 @@ sensu_check "customer_billing_metrics" do
       :ttl => 1900
     })
 end
+
+sensu_check "run_duply_backups" do
+  command "sudo /usr/bin/duply backup backup"
+  subscribers ["SolodevControl", "SolodevProfessional"]
+  publish false
+end

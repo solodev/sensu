@@ -52,7 +52,7 @@ SITE
       yum-epel (>= 0.0.0)
     ohai (3.0.1)
     packagecloud (0.2.5)
-    rabbitmq (4.9.0)
+    rabbitmq (4.10.0)
       dpkg_autostart (>= 0.0.0)
       erlang (>= 0.0.0)
       yum-epel (>= 0.0.0)
@@ -84,10 +84,10 @@ SITE
 
 GIT
   remote: https://github.com/solodev/solodev-sensu.git
-  ref: 2.0.1
-  sha: 864133e1fb7dca5c06d0d194cb1c23b5e12f02cb
+  ref: 2.1.1
+  sha: 2f5bc2d9372a2b20779e7bfb1ca07b5f03d2e885
   specs:
-    solodev_sensu (2.0.1)
+    solodev_sensu (2.1.1)
       build-essential (>= 0.0.0)
       citadel (>= 0.0.0)
       grafana (>= 0.0.0)
