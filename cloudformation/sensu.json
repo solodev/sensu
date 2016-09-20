@@ -567,7 +567,7 @@
           "Ref": "SensuStack"
         },
         "Type": "custom",
-        "EnableAutoHealing": "false",
+        "EnableAutoHealing": "true",
         "AutoAssignElasticIps": "true",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
@@ -604,16 +604,62 @@
         }
       }
     },
-    "RabbitmqFollowerLayer": {
+    "RabbitmqFollowerOneLayer": {
       "Type": "AWS::OpsWorks::Layer",
       "Properties": {
-        "Name": "rabbitmq-follower",
-        "Shortname": "rabbitmq-follower",
+        "Name": "rabbitmq-follower-one",
+        "Shortname": "rabbitmq-follower-one",
         "StackId": {
           "Ref": "SensuStack"
         },
         "Type": "custom",
-        "EnableAutoHealing": "false",
+        "EnableAutoHealing": "true",
+        "AutoAssignElasticIps": "true",
+        "AutoAssignPublicIps": "true",
+        "CustomInstanceProfileArn": {
+          "Fn::GetAtt": [
+            "SensuIamInstanceProfile",
+            "Arn"
+          ]
+        },
+        "CustomSecurityGroupIds": [
+          {
+            "Ref": "SensuSecurityGroup"
+          },
+          {
+            "Ref": "RabbitmqSecurityGroup"
+          }
+        ],
+        "CustomRecipes": {
+          "Setup": [
+            "solodev_sensu::rabbitmq"
+          ],
+          "Configure": [
+            "solodev_sensu::rabbitmq_follower",
+            "solodev_sensu::client"
+          ],
+          "Deploy": [
+
+          ],
+          "Undeploy": [
+
+          ],
+          "Shutdown": [
+
+          ]
+        }
+      }
+    },
+    "RabbitmqFollowerTwoLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "Name": "rabbitmq-follower-two",
+        "Shortname": "rabbitmq-follower-two",
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "Type": "custom",
+        "EnableAutoHealing": "true",
         "AutoAssignElasticIps": "true",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
@@ -659,7 +705,7 @@
           "Ref": "SensuStack"
         },
         "Type": "custom",
-        "EnableAutoHealing": "false",
+        "EnableAutoHealing": "true",
         "AutoAssignElasticIps": "true",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
@@ -741,7 +787,7 @@
           "Ref": "SensuStack"
         },
         "Type": "custom",
-        "EnableAutoHealing": "false",
+        "EnableAutoHealing": "true",
         "AutoAssignElasticIps": "true",
         "AutoAssignPublicIps": "true",
         "CustomInstanceProfileArn": {
@@ -806,7 +852,7 @@
         }
       }
     },
-    "RabbitmqFollower1Instance": {
+    "RabbitmqFollowerOneInstance": {
       "Type": "AWS::OpsWorks::Instance",
       "Properties": {
         "InstanceType": {
@@ -814,7 +860,7 @@
         },
         "LayerIds": [
           {
-            "Ref": "RabbitmqFollowerLayer"
+            "Ref": "RabbitmqFollowerOneLayer"
           }
         ],
         "Os": "CentOS Linux 7",
@@ -836,7 +882,7 @@
       },
       "DependsOn": "RabbitmqLeaderInstance"
     },
-    "RabbitmqFollower2Instance": {
+    "RabbitmqFollowerTwoInstance": {
       "Type": "AWS::OpsWorks::Instance",
       "Properties": {
         "InstanceType": {
@@ -844,7 +890,7 @@
         },
         "LayerIds": [
           {
-            "Ref": "RabbitmqFollowerLayer"
+            "Ref": "RabbitmqFollowerTwoLayer"
           }
         ],
         "Os": "CentOS Linux 7",
@@ -896,36 +942,6 @@
       },
       "DependsOn": "RabbitmqLeaderInstance"
     },
-    "SensuInstance0": {
-      "Type": "AWS::OpsWorks::Instance",
-      "Properties": {
-        "InstanceType": {
-          "Ref": "SensuInstanceType"
-        },
-        "LayerIds": [
-          {
-            "Ref": "SensuLayer"
-          }
-        ],
-        "Os": "Amazon Linux 2016.03",
-        "RootDeviceType": "ebs",
-        "SshKeyName": {
-          "Ref": "SshKeyName"
-        },
-        "StackId": {
-          "Ref": "SensuStack"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "SubnetIds"
-            }
-          ]
-        }
-      },
-      "DependsOn": "InfluxdbInstance"
-    },
     "SensuInstance1": {
       "Type": "AWS::OpsWorks::Instance",
       "Properties": {
@@ -948,6 +964,36 @@
         "SubnetId": {
           "Fn::Select": [
             1,
+            {
+              "Ref": "SubnetIds"
+            }
+          ]
+        }
+      },
+      "DependsOn": "InfluxdbInstance"
+    },
+    "SensuInstance2": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "SensuInstanceType"
+        },
+        "LayerIds": [
+          {
+            "Ref": "SensuLayer"
+          }
+        ],
+        "Os": "Amazon Linux 2016.03",
+        "RootDeviceType": "ebs",
+        "SshKeyName": {
+          "Ref": "SshKeyName"
+        },
+        "StackId": {
+          "Ref": "SensuStack"
+        },
+        "SubnetId": {
+          "Fn::Select": [
+            2,
             {
               "Ref": "SubnetIds"
             }
