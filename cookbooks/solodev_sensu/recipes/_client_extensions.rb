@@ -21,10 +21,12 @@ end
 solodev_custom_json = node["solodev"] || {}
 customer_id = solodev_custom_json["customer_id"] || "solodev-sensu"
 
+client_name = [node["hostname"], node["ec2"]["instance_id"]].join("-")
+
 sensu_snippet "system_profile" do
   content({
       :add_client_prefix => false,
-      :path_prefix => "#{customer_id}.#{node.name}",
+      :path_prefix => "#{customer_id}.#{client_name}",
       :handler => "influxdb"
     })
 end

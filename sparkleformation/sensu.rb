@@ -331,22 +331,44 @@ SparkleFormation.new(:sensu) do
     end
   end
 
-  %w( leader follower ).each do |type|
-    resources("rabbitmq_#{type}_layer".to_sym) do
+  resources(:rabbitmq_leader_layer) do
+    type 'AWS::OpsWorks::Layer'
+    properties do
+      name "rabbitmq-leader"
+      shortname "rabbitmq-leader"
+      stack_id ref!(:sensu_stack)
+      type 'custom'
+      enable_auto_healing 'true'
+      auto_assign_elastic_ips 'true'
+      auto_assign_public_ips 'true'
+      custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
+      custom_security_group_ids [ref!(:sensu_security_group), ref!(:rabbitmq_security_group)]
+      custom_recipes do
+        setup [ "solodev_sensu::rabbitmq" ]
+        configure [ "solodev_sensu::rabbitmq_leader", "solodev_sensu::client" ]
+        deploy []
+        undeploy []
+        shutdown []
+      end
+    end
+  end
+
+  %w[ one two ].each do |i|
+    resources("rabbitmq_follower_#{i}_layer".to_sym) do
       type 'AWS::OpsWorks::Layer'
       properties do
-        name "rabbitmq-#{type}"
-        shortname "rabbitmq-#{type}"
+        name "rabbitmq-follower-#{i}"
+        shortname "rabbitmq-follower-#{i}"
         stack_id ref!(:sensu_stack)
         type 'custom'
-        enable_auto_healing 'false'
+        enable_auto_healing 'true'
         auto_assign_elastic_ips 'true'
         auto_assign_public_ips 'true'
         custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
         custom_security_group_ids [ref!(:sensu_security_group), ref!(:rabbitmq_security_group)]
         custom_recipes do
           setup [ "solodev_sensu::rabbitmq" ]
-          configure [ "solodev_sensu::rabbitmq_#{type}", "solodev_sensu::client" ]
+          configure [ "solodev_sensu::rabbitmq_follower", "solodev_sensu::client" ]
           deploy []
           undeploy []
           shutdown []
@@ -362,7 +384,7 @@ SparkleFormation.new(:sensu) do
       shortname 'sensu'
       stack_id ref!(:sensu_stack)
       type 'custom'
-      enable_auto_healing 'false'
+      enable_auto_healing 'true'
       auto_assign_elastic_ips 'true'
       auto_assign_public_ips 'true'
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
@@ -414,7 +436,7 @@ SparkleFormation.new(:sensu) do
       shortname 'influxdb'
       stack_id ref!(:sensu_stack)
       type 'custom'
-      enable_auto_healing 'false'
+      enable_auto_healing 'true'
       auto_assign_elastic_ips 'true'
       auto_assign_public_ips 'true'
       custom_instance_profile_arn attr!(:sensu_iam_instance_profile, :arn)
@@ -429,10 +451,9 @@ SparkleFormation.new(:sensu) do
     end
   end
 
-  rabbit_count = 0
-  %w( leader follower1 follower2 ).each do |type|
-    rabbit_layer = "rabbitmq_#{type.gsub(/[0-9]/,"")}_layer".to_sym
-    resources("rabbitmq_#{type}_instance".to_sym) do
+  %w[ leader follower_one follower_two ].each_with_index do |broker, count|
+    rabbit_layer = "rabbitmq_#{broker}_layer".to_sym
+    resources("rabbitmq_#{broker}_instance".to_sym) do
       type 'AWS::OpsWorks::Instance'
       properties do
         instance_type ref!(:rabbitmq_instance_type)
@@ -441,14 +462,13 @@ SparkleFormation.new(:sensu) do
         root_device_type 'ebs'
         ssh_key_name ref!(:ssh_key_name)
         stack_id ref!(:sensu_stack)
-        subnet_id select!(rabbit_count, ref!(:subnet_ids))
+        subnet_id select!(count, ref!(:subnet_ids))
       end
     end
-    rabbit_count += 1
   end
 
-  [1, 2].each do |i|
-    resources("rabbitmq_follower#{i}_instance".to_sym) do
+  %w[ follower_one follower_two ].each do |broker|
+    resources("rabbitmq_#{broker}_instance".to_sym) do
       depends_on process_key!(:rabbitmq_leader_instance)
     end
   end
@@ -467,7 +487,7 @@ SparkleFormation.new(:sensu) do
     depends_on process_key!(:rabbitmq_leader_instance)
   end
 
-  2.times do |i|
+  [1, 2].each do |i|
     resources("sensu_instance_#{i}".to_sym) do
       type 'AWS::OpsWorks::Instance'
       properties do

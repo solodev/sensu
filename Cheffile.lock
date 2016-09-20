@@ -84,10 +84,10 @@ SITE
 
 GIT
   remote: https://github.com/solodev/solodev-sensu.git
-  ref: 1.1.0
-  sha: 556c5252ddefc6c18caccb35582a5767a11e9e2d
+  ref: 2.0.1
+  sha: 864133e1fb7dca5c06d0d194cb1c23b5e12f02cb
   specs:
-    solodev_sensu (1.1.0)
+    solodev_sensu (2.0.1)
       build-essential (>= 0.0.0)
       citadel (>= 0.0.0)
       grafana (>= 0.0.0)
