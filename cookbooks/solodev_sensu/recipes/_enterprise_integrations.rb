@@ -22,3 +22,20 @@ sensu_snippet "influxdb" do
       :database => "sensu"
     })
 end
+
+hipchat_api_token = solodev_secrets["hipchat"]["api_token"]
+hipchat_username = solodev_secrets["hipchat"]["username"]
+hipchat_room = solodev_secrets["hipchat"]["room"]
+
+sensu_snippet "hipchat" do
+  content({
+      :api_token => hipchat_api_token,
+      :username => hipchat_username,
+      :room => hipchat_room
+    })
+end
+
+sensu_handler "default" do
+  type "set"
+  handlers ["hipchat"]
+end

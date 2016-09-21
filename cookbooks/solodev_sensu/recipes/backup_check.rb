@@ -6,23 +6,13 @@
 
 include_recipe "sudo"
 
-backup_command = "/usr/bin/duply backup backup"
-
 sudo "sensu_duply" do
   user "sensu"
   runas "root"
   nopasswd true
-  commands [backup_command]
+  commands ["/usr/bin/duply backup backup"]
 end
 
-# Backups currently scheduled by CRON. A regular (centralized) check
-# definition exists for requesting backup execution.
-#
-#sensu_check "run_duply_backups" do
-#  command "sudo #{backup_command}"
-#  standalone true
-#  interval 86400 # Run every 24 hours
-#  additional({
-#      :ttl => 129600 # Expect a result every 36 hours
-#    })
-#end
+cookbook_file "/usr/bin/duply_backups.sh" do
+  mode "0755"
+end

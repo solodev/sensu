@@ -26,8 +26,8 @@ class CustomerBillingMetrics < Sensu::Plugin::Metric::CLI::Graphite
     JSON.parse(request.get, :symbolize_names => true)
   rescue Errno::ECONNREFUSED
     warning "InfluxDB connection refused"
-  rescue RestClient::RequestFailed
-    warning "InfluxDB request failed"
+  rescue RestClient::RequestFailed => error
+    warning "InfluxDB request failed: #{error}"
   rescue RestClient::RequestTimeout
     warning "InfluxDB connection timed out"
   rescue RestClient::Unauthorized
@@ -42,8 +42,8 @@ class CustomerBillingMetrics < Sensu::Plugin::Metric::CLI::Graphite
     request.post({:payload => JSON.dump(report)})
   rescue Errno::ECONNREFUSED
     warning "Solodev connection refused"
-  rescue RestClient::RequestFailed
-    warning "Solodev request failed"
+  rescue RestClient::RequestFailed => error
+    warning "Solodev request failed: #{error}"
   rescue RestClient::RequestTimeout
     warning "Solodev connection timed out"
   rescue RestClient::Unauthorized
