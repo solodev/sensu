@@ -179,6 +179,11 @@ task :create_secrets do
     :influxdb => {
       :username => ENV["INFLUXDB_USER"],
       :password => ENV["INFLUXDB_PASS"]
+    },
+    :hipchat => {
+      :api_token => ENV["HIPCHAT_API_TOKEN"],
+      :username => ENV["HIPCHAT_USERNAME"],
+      :room => ENV["HIPCHAT_ROOM"]
     }
   }
   File.open(secrets_file, "w") do |file|
