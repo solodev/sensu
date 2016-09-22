@@ -42,13 +42,13 @@ end
 
 sensu_check "customer_billing_metrics" do
   type "metric"
-  command "metrics-customer-billing.rb -i 30m"
+  command "metrics-customer-billing.rb -i 60m"
   handlers ["influxdb"]
   subscribers ["roundrobin:influxdb"]
-  interval 1800
+  interval 3600
   timeout 30
   additional({
-      :ttl => 1900
+      :ttl => 3800
     })
 end
 
